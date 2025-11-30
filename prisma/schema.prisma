@@ -1,0 +1,168 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ===== USERS & AUTHENTICATION =====
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  password      String    // bcrypt hash
+  role          Role      @default(STUDENT)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  enrollments   Enrollment[]
+  purchases     Purchase[]
+  certificates  Certificate[]
+  viewingLogs   ViewingLog[]
+  quizAttempts  QuizAttempt[]
+}
+
+enum Role {
+  STUDENT
+  ADMIN
+}
+
+// ===== COURSES =====
+model Course {
+  id            String    @id @default(cuid())
+  title         String
+  description   String    @db.Text
+  price         Float
+  thumbnailUrl  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  lessons       Lesson[]
+  enrollments   Enrollment[]
+  purchases     Purchase[]
+  certificates  Certificate[]
+}
+
+// ===== LESSONS =====
+model Lesson {
+  id            String    @id @default(cuid())
+  courseId      String
+  title         String
+  description   String?   @db.Text
+  videoUrl      String    // Mux playback URL or S3
+  videoDuration Int       // seconds
+  order         Int
+  createdAt     DateTime  @default(now())
+  
+  course        Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  quizMarkers   QuizMarker[]
+  viewingLogs   ViewingLog[]
+  
+  @@index([courseId])
+}
+
+//  ===== QUIZ MARKERS =====
+model QuizMarker {
+  id            String    @id @default(cuid())
+  lessonId      String
+  timestamp     Int       // seconds from video start
+  question      String    @db.Text
+  options       Json      // array: [{text: string, isCorrect: boolean}]
+  
+  lesson        Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  attempts      QuizAttempt[]
+  
+  @@index([lessonId])
+}
+
+// ===== ENROLLMENTS =====
+model Enrollment {
+  id            String    @id @default(cuid())
+  userId        String
+  courseId      String
+  enrolledAt    DateTime  @default(now())
+  completedAt   DateTime?
+  progress      Float     @default(0) // 0-100%
+  
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course        Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+}
+
+// ===== PURCHASES =====
+model Purchase {
+  id            String    @id @default(cuid())
+  userId        String
+  courseId      String
+  amount        Float
+  status        PurchaseStatus @default(PENDING)
+  purchasedAt   DateTime  @default(now())
+  
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course        Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([courseId])
+}
+
+enum PurchaseStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+// ===== VIEWING LOGS (HEARTBEAT TRACKING) =====
+model ViewingLog {
+  id            String    @id @default(cuid())
+  userId        String
+  lessonId      String
+  currentTime   Int       // current second in video
+  maxViewedTime Int       // maximum second reached
+  playbackRate  Float     @default(1.0)
+  isVisible     Boolean   @default(true) // tab visibility
+  timestamp     DateTime  @default(now())
+  
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson        Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, lessonId])
+  @@index([timestamp])
+}
+
+// ===== QUIZ ATTEMPTS =====
+model QuizAttempt {
+  id            String    @id @default(cuid())
+  userId        String
+  quizMarkerId  String
+  selectedOption Int      // index of selected option
+  isCorrect     Boolean
+  attemptedAt   DateTime  @default(now())
+  
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quizMarker    QuizMarker @relation(fields: [quizMarkerId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([quizMarkerId])
+}
+
+// ===== CERTIFICATES =====
+model Certificate {
+  id            String    @id @default(cuid())
+  userId        String
+  courseId      String
+  pdfUrl        String?   // S3 URL of generated PDF
+  issuedAt      DateTime  @default(now())
+  
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course        Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, courseId])
+  @@index([userId])
+}

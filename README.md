@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LMS Platform - ARCHIBIT
 
-## Getting Started
+A complete Learning Management System with advanced video tracking and quiz validation.
 
-First, run the development server:
+## 🚀 Quick Start
 
 ```bash
+# Install dependencies
+npm install
+
+# Setup environment variables
+cp .env.example .env
+# Edit .env with your database credentials
+
+# Run database migrations
+npx prisma migrate dev --name init
+npx prisma generate
+
+# Start development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit `http://localhost:3000/example-lesson` to see the video player in action.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## ✨ Features
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Core Functionality
+- 🎥 **Secure Video Player** with anti-skip protection
+- 📊 **Heartbeat Tracking** - Monitors viewing progress every 10s
+- ❓ **Interactive Quizzes** - Temporal quiz markers in videos
+- 📜 **Certificate Generation** - PDF certificates upon course completion
+- 🔐 **Authentication** - NextAuth.js with role-based access
 
-## Learn More
+### Security Features
+- ⏩ **No Forward Seeking** - Users can only rewind
+- 🎬 **Playback Rate Lock** - Fixed at 1.0x speed
+- 👁️ **Visibility Tracking** - Pauses when tab is hidden
+- ⏸️ **Quiz Checkpoints** - Must answer correctly to proceed
+- ✅ **Watch Time Validation** - Must watch 95% before certificate
 
-To learn more about Next.js, take a look at the following resources:
+## 📁 Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+archibit-lms/
+├── prisma/
+│   └── schema.prisma           # Database schema
+├── src/
+│   ├── app/
+│   │   ├── api/
+│   │   │   ├── heartbeat/      # Video tracking endpoint
+│   │   │   ├── quiz/           # Quiz validation
+│   │   │   └── certificates/   # Certificate generation
+│   │   └── example-lesson/     # Demo lesson page
+│   ├── components/
+│   │   ├── video/
+│   │   │   └── SecureVideoPlayer.tsx
+│   │   └── quiz/
+│   │       └── QuizModal.tsx
+│   ├── hooks/
+│   │   └── useHeartbeat.ts     # Heartbeat tracking hook
+│   └── lib/
+│       ├── prisma.ts           # Database client
+│       ├── auth.ts             # NextAuth config
+│       └── pdf/
+│           └── certificate-generator.ts
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🛠️ Tech Stack
 
-## Deploy on Vercel
+- **Framework**: Next.js 14 (App Router)
+- **Language**: TypeScript
+- **Database**: PostgreSQL + Prisma ORM
+- **Authentication**: NextAuth.js v5
+- **Styling**: Tailwind CSS
+- **PDF**: jsPDF
+- **Video**: HTML5 Video (Mux/AWS ready)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 📚 Documentation
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See [Implementation Plan](/.gemini/antigravity/brain/31811bc2-b103-450a-a266-d0df766c290b/implementation_plan.md) for detailed architecture and design decisions.
+
+## 🎯 Next Steps
+
+- [ ] Create admin dashboard for course management
+- [ ] Build student course catalog
+- [ ] Implement payment integration
+- [ ] Add analytics dashboard
+- [ ] Deploy to production
+
+## 📝 License
+
+MIT
