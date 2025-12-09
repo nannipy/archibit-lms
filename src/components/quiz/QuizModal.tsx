@@ -1,156 +1,146 @@
 'use client';
 
 import { useState } from 'react';
-import { QuizMarker, QuizSubmitResponse } from '@/types';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { QuizMarker } from '@/types';
 
 interface QuizModalProps {
-  marker: QuizMarker;
-  onComplete: (isCorrect: boolean, rewindTo?: number) => void;
+    marker: QuizMarker;
+    onComplete: (isCorrect: boolean, rewindTo?: number) => void;
+    isOpen?: boolean;
+    onClose?: () => void;
 }
 
-export default function QuizModal({ marker, onComplete }: QuizModalProps) {
-  const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
+export default function QuizModal({ marker, onComplete, isOpen = true, onClose }: QuizModalProps) {
+    const [selectedOption, setSelectedOption] = useState<number | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [feedback, setFeedback] = useState<{ isCorrect: boolean; message: string } | null>(null);
 
-  const handleSubmit = async () => {
-    if (selectedOption === null) return;
+    const handleSubmit = async () => {
+        if (selectedOption === null) return;
 
-    setIsSubmitting(true);
+        setIsSubmitting(true);
 
-    try {
-      const response = await fetch('/api/quiz/submit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          quizMarkerId: marker.id,
-          selectedOption,
-        }),
-      });
+        try {
+            const response = await fetch('/api/quiz/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    quizMarkerId: marker.id,
+                    selectedOption,
+                }),
+            });
 
-      if (!response.ok) {
-        throw new Error('Quiz submission failed');
-      }
+            const data = await response.json();
 
-      const data: QuizSubmitResponse = await response.json();
-      
-      setFeedback(data.isCorrect ? 'correct' : 'incorrect');
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to submit quiz');
+            }
 
-      // Show feedback for 2 seconds then close
-      setTimeout(() => {
-        onComplete(data.isCorrect, data.rewindTo);
-      }, 2000);
-    } catch (error) {
-      console.error('Quiz submission error:', error);
-      alert('Failed to submit quiz. Please try again.');
-      setIsSubmitting(false);
-    }
-  };
+            setFeedback({
+                isCorrect: data.isCorrect,
+                message: data.isCorrect
+                    ? 'Ottimo! Risposta corretta!'
+                    : 'Risposta sbagliata. Rivedi il video e riprova.',
+            });
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full mx-4 p-8">
-        {feedback === null ? (
-          <>
-            {/* Quiz Question */}
-            <div className="mb-8">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="bg-blue-600 p-3 rounded-full">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  Quiz Question
-                </h2>
-              </div>
-              <p className="text-lg text-gray-700 dark:text-gray-300 leading-relaxed">
-                {marker.question}
-              </p>
-            </div>
+            // Auto-close after showing feedback
+            setTimeout(() => {
+                onComplete(data.isCorrect, data.rewindTo);
+            }, 2000);
+        } catch (error) {
+            console.error('Quiz submission error:', error);
+            setFeedback({
+                isCorrect: false,
+                message: 'Errore durante l\'invio. Riprova.',
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
-            {/* Options */}
-            <div className="space-y-3 mb-8">
-              {marker.options.map((option, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedOption(index)}
-                  className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
-                    selectedOption === index
-                      ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/30'
-                      : 'border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                        selectedOption === index
-                          ? 'border-blue-600 bg-blue-600'
-                          : 'border-gray-400'
-                      }`}
-                    >
-                      {selectedOption === index && (
-                        <div className="w-3 h-3 bg-white rounded-full" />
-                      )}
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <Card className="w-full max-w-xl bg-gray-900 border-gray-700 text-white">
+                <CardHeader>
+                    <CardTitle className="text-xl">Quiz</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    {/* Question */}
+                    <p className="text-lg font-medium">{marker.question}</p>
+
+                    {/* Options */}
+                    <div className="space-y-3">
+                        {marker.options.map((option, index) => (
+                            <button
+                                key={index}
+                                onClick={() => !feedback && setSelectedOption(index)}
+                                disabled={!!feedback || isSubmitting}
+                                className={`w-full text-left p-4 rounded-lg border transition-all ${
+                                    selectedOption === index
+                                        ? 'border-blue-500 bg-blue-500/20'
+                                        : 'border-gray-600 hover:border-gray-500 hover:bg-gray-800/50'
+                                } ${
+                                    feedback && option.isCorrect
+                                        ? 'border-green-500 bg-green-500/20'
+                                        : feedback && selectedOption === index && !option.isCorrect
+                                        ? 'border-red-500 bg-red-500/20'
+                                        : ''
+                                } disabled:cursor-not-allowed`}
+                            >
+                                <span className="inline-flex items-center justify-center w-6 h-6 mr-3 rounded-full bg-gray-700 text-sm">
+                                    {String.fromCharCode(65 + index)}
+                                </span>
+                                {option.text}
+                            </button>
+                        ))}
                     </div>
-                    <span className="text-gray-900 dark:text-gray-100 font-medium">
-                      {option.text}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
 
-            {/* Submit Button */}
-            <button
-              onClick={handleSubmit}
-              disabled={selectedOption === null || isSubmitting}
-              className={`w-full py-4 rounded-lg font-semibold text-white transition-all ${
-                selectedOption === null || isSubmitting
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700 active:scale-95'
-              }`}
-            >
-              {isSubmitting ? 'Submitting...' : 'Submit Answer'}
-            </button>
+                    {/* Feedback */}
+                    {feedback && (
+                        <div
+                            className={`p-4 rounded-lg ${
+                                feedback.isCorrect
+                                    ? 'bg-green-500/20 border border-green-500 text-green-300'
+                                    : 'bg-red-500/20 border border-red-500 text-red-300'
+                            }`}
+                        >
+                            <div className="flex items-center gap-2">
+                                {feedback.isCorrect ? (
+                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path
+                                            fillRule="evenodd"
+                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                            clipRule="evenodd"
+                                        />
+                                    </svg>
+                                ) : (
+                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path
+                                            fillRule="evenodd"
+                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                            clipRule="evenodd"
+                                        />
+                                    </svg>
+                                )}
+                                {feedback.message}
+                            </div>
+                        </div>
+                    )}
 
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center mt-4">
-              The video will resume after you answer this question
-            </p>
-          </>
-        ) : (
-          /* Feedback */
-          <div className="text-center py-8">
-            {feedback === 'correct' ? (
-              <>
-                <div className="mx-auto w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                  <svg className="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <h3 className="text-3xl font-bold text-green-600 mb-2">Correct!</h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Great job! The video will continue in a moment.
-                </p>
-              </>
-            ) : (
-              <>
-                <div className="mx-auto w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                  <svg className="w-12 h-12 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </div>
-                <h3 className="text-3xl font-bold text-red-600 mb-2">Incorrect</h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                  The video will rewind. Please watch again and try again.
-                </p>
-              </>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
+                    {/* Submit Button */}
+                    {!feedback && (
+                        <Button
+                            onClick={handleSubmit}
+                            disabled={selectedOption === null || isSubmitting}
+                            className="w-full"
+                        >
+                            {isSubmitting ? 'Invio in corso...' : 'Conferma risposta'}
+                        </Button>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
+    );
 }

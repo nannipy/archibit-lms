@@ -1,20 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { auth } from '@/lib/auth';
+import { createClient } from '@/lib/supabase/server';
 import { generateCertificatePDF } from '@/lib/pdf/certificate-generator';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 
 export async function POST(request: NextRequest) {
     try {
-        // Get authenticated user
-        const session = await auth();
-        if (!session?.user?.email) {
+        // Get authenticated user from Supabase
+        const supabase = await createClient();
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+
+        if (!authUser) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         const user = await prisma.user.findUnique({
-            where: { email: session.user.email },
+            where: { id: authUser.id },
         });
 
         if (!user) {

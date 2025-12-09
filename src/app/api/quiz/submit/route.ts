@@ -1,18 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { auth } from '@/lib/auth';
+import { createClient } from '@/lib/supabase/server';
 import { QuizOption } from '@/types';
 
 export async function POST(request: NextRequest) {
     try {
-        // Get authenticated user
-        const session = await auth();
-        if (!session?.user?.email) {
+        // Get authenticated user from Supabase
+        const supabase = await createClient();
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+
+        if (!authUser) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         const user = await prisma.user.findUnique({
-            where: { email: session.user.email },
+            where: { id: authUser.id },
         });
 
         if (!user) {
@@ -35,7 +37,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Parse options from JSON
-        const options = quizMarker.options as QuizOption[];
+        const options = quizMarker.options as unknown as QuizOption[];
 
         if (selectedOption < 0 || selectedOption >= options.length) {
             return NextResponse.json({ error: 'Invalid option index' }, { status: 400 });

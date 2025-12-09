@@ -19,7 +19,7 @@ const exampleQuizMarkers: QuizMarker[] = [
   {
     id: 'quiz-1',
     lessonId: 'lesson-123',
-    timestamp: 120, // 2 minutes into the video
+    timestamp: 30, // 2 minutes into the video
     question: 'What is Next.js primarily used for?',
     options: [
       { text: 'Mobile app development', isCorrect: false },

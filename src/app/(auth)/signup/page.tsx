@@ -3,6 +3,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { createClient } from '@/lib/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import Image from 'next/image';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -13,164 +19,177 @@ export default function SignupPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const supabase = createClient();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     // Validation
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError('Le password non corrispondono');
       return;
     }
 
     if (password.length < 8) {
-      setError('Password must be at least 8 characters');
+      setError('La password deve essere di almeno 8 caratteri');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      // Sign up with Supabase Auth
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: name,
+          },
         },
-        body: JSON.stringify({
-          name,
-          email,
-          password,
-        }),
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || 'Failed to create account');
+      if (signUpError) {
+        setError(signUpError.message);
         return;
       }
 
-      // Redirect to login
-      router.push('/login?registered=true');
+      if (data.user) {
+        // Create user profile via API route (server-side with admin privileges)
+        try {
+          const profileResponse = await fetch('/api/auth/create-profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: data.user.id,
+              email: email,
+              name: name,
+            }),
+          });
+
+          if (!profileResponse.ok) {
+            console.error('Error creating user profile');
+          }
+        } catch (err) {
+          console.error('Error creating user profile:', err);
+        }
+      }
+
+      // Redirect to courses
+      router.push('/courses');
+      router.refresh();
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      setError('Si è verificato un errore. Riprova.');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8">
+      <div className="w-full max-w-md space-y-6">
         {/* Logo/Brand */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-normal text-gray-800 mb-2">
-            ARCHIBIT LMS
-          </h1>
-          <p className="text-base text-gray-600">Create your account</p>
+        <div className="text-center space-y-2">
+          <img src="/logo.png" alt="Logo Archibit LMS" width={80} height={80} className="h-16 w-auto mx-auto mb-4" />
+          <p className="text-muted-foreground">Crea il tuo account per iniziare ad imparare</p>
         </div>
 
         {/* Signup Card */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Error Message */}
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
-                {error}
+        <Card>
+          <CardHeader>
+            <CardTitle>Inizia ora</CardTitle>
+            <CardDescription>Crea un nuovo account per accedere a tutti i corsi</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Error Message */}
+              {error && (
+                <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md text-sm">
+                  {error}
+                </div>
+              )}
+
+              {/* Name Field */}
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome completo</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  placeholder="Mario Rossi"
+                />
               </div>
-            )}
 
-            {/* Name Field */}
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                Full Name
-              </label>
-              <input
-                id="name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900"
-                placeholder="John Doe"
-              />
+              {/* Email Field */}
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  placeholder="tua@email.com"
+                />
+              </div>
+
+              {/* Password Field */}
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={8}
+                  placeholder="••••••••"
+                />
+                <p className="text-xs text-muted-foreground">Almeno 8 caratteri</p>
+              </div>
+
+              {/* Confirm Password Field */}
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Conferma Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  placeholder="••••••••"
+                />
+              </div>
+
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full"
+              >
+                {isLoading ? 'Creazione account...' : 'Crea account'}
+              </Button>
+            </form>
+
+            {/* Sign in link */}
+            <div className="mt-4 pt-4 border-t text-center">
+              <p className="text-sm text-muted-foreground">
+                Hai già un account?{' '}
+                <Link href="/login" className="text-primary hover:underline font-medium">
+                  Accedi
+                </Link>
+              </p>
             </div>
+          </CardContent>
+        </Card>
 
-            {/* Email Field */}
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900"
-                placeholder="your@email.com"
-              />
-            </div>
-
-            {/* Password Field */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={8}
-                className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900"
-                placeholder="••••••••"
-              />
-              <p className="mt-1 text-xs text-gray-500">At least 8 characters</p>
-            </div>
-
-            {/* Confirm Password Field */}
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                Confirm Password
-              </label>
-              <input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900"
-                placeholder="••••••••"
-              />
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-6"
-            >
-              {isLoading ? 'Creating account...' : 'Create account'}
-            </button>
-          </form>
-
-          {/* Divider */}
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <p className="text-center text-sm text-gray-600">
-              Already have an account?{' '}
-              <Link href="/login" className="text-blue-600 hover:text-blue-700 font-medium">
-                Sign in
-              </Link>
-            </p>
-          </div>
-        </div>
-
-        {/* Footer Links */}
-        <div className="mt-6 text-center">
-          <Link href="/" className="text-sm text-gray-600 hover:text-gray-800">
-            ← Back to home
+        {/* Footer Link */}
+        <div className="text-center">
+          <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            ← Torna alla home
           </Link>
         </div>
       </div>
