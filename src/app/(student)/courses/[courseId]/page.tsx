@@ -120,6 +120,8 @@ export default async function CourseDetailPage(props: { params: Promise<{ course
                 title: course.title,
                 description: course.description,
                 price: course.price,
+                discountPrice: course.discountPrice,
+                discountExpiresAt: course.discountExpiresAt,
                 thumbnailUrl: course.thumbnailUrl,
                 lessons: course.lessons.map(l => ({
                     id: l.id,

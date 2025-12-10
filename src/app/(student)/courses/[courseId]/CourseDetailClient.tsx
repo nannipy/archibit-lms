@@ -28,6 +28,8 @@ interface CourseDetailClientProps {
         title: string;
         description: string;
         price: number;
+        discountPrice?: number | null;
+        discountExpiresAt?: Date | null;
         thumbnailUrl?: string | null;
         lessons: Lesson[];
     };
@@ -51,20 +53,27 @@ export function CourseDetailClient({ course, enrollment, completedLessonIds }: C
     const hours = Math.floor(totalDuration / 3600);
     const minutes = Math.floor((totalDuration % 3600) / 60);
 
+    // Calculate Discount
+    const hasDiscount = course.discountPrice !== null && course.discountPrice !== undefined && 
+        (course.discountExpiresAt === null || course.discountExpiresAt === undefined || new Date(course.discountExpiresAt) > new Date());
+    
+    const effectivePrice = hasDiscount ? course.discountPrice! : course.price;
+    const isFree = effectivePrice === 0;
+
     const handleEnroll = () => {
         setIsPaymentModalOpen(true);
     };
 
-    const processEnrollment = async () => {
+    const processEnrollment = async (couponCode?: string) => {
         try {
-            const result = await enrollUser(course.id);
+            const result = await enrollUser(course.id, couponCode); // Pass couponCode
             
             if (result.success) {
                 toast.success("Iscrizione completata con successo!");
                 setIsPaymentModalOpen(false);
                 router.refresh(); 
             } else {
-                toast.error("Errore durante l'iscrizione. Riprova.");
+                toast.error(result.message || "Errore durante l'iscrizione. Riprova.");
                 console.error(result.error);
             }
           } catch (err) {
@@ -140,7 +149,19 @@ export function CourseDetailClient({ course, enrollment, completedLessonIds }: C
                     </div>
                   )}
                 </div>
-                <CardTitle className="text-2xl">€{course.price}</CardTitle>
+                {hasDiscount ? (
+                    <div className="space-y-1">
+                        <CardTitle className="text-2xl text-red-600">€{effectivePrice.toFixed(2)}</CardTitle>
+                        <p className="text-sm text-muted-foreground line-through">€{course.price.toFixed(2)}</p>
+                        {course.discountExpiresAt && (
+                            <p className="text-xs text-red-500 font-medium">
+                                Offerta termina il {new Date(course.discountExpiresAt).toLocaleDateString()}
+                            </p>
+                        )}
+                    </div>
+                ) : (
+                    <CardTitle className="text-2xl">€{course.price}</CardTitle>
+                )}
                 <CardDescription>Acquisto una tantum, accesso a vita</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -271,8 +292,9 @@ export function CourseDetailClient({ course, enrollment, completedLessonIds }: C
             isOpen={isPaymentModalOpen}
             onClose={() => setIsPaymentModalOpen(false)}
             onConfirm={processEnrollment}
-            price={course.price}
+            price={effectivePrice}
             courseTitle={course.title}
+            courseId={course.id}
         />
     </div>
     );

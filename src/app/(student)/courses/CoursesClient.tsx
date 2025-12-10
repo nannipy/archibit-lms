@@ -17,6 +17,8 @@ export type CourseWithProgress = {
   title: string;
   description: string;
   price: number;
+  discountPrice?: number | null;
+  discountExpiresAt?: Date | string | null;
   thumbnailUrl?: string | null;
   _count?: {
      lessons: number;
@@ -42,18 +44,18 @@ export function CoursesClient({ courses, userId, userName }: CoursesClientProps)
     setIsPaymentModalOpen(true);
   };
 
-  const processEnrollment = async () => {
+  const processEnrollment = async (couponCode?: string) => {
     if (!selectedCourse) return;
 
     try {
-      const result = await enrollUser(selectedCourse.id);
+      const result = await enrollUser(selectedCourse.id, couponCode);
       
       if (result.success) {
           toast.success("Iscrizione completata con successo!");
           setIsPaymentModalOpen(false);
           router.refresh(); 
       } else {
-          toast.error("Errore durante l'iscrizione. Riprova.");
+          toast.error(result.message || "Errore durante l'iscrizione. Riprova.");
           console.error(result.error);
       }
     } catch (err) {
@@ -139,7 +141,11 @@ export function CoursesClient({ courses, userId, userName }: CoursesClientProps)
             {enrolledCourses.length > 0 ? 'Altri Corsi' : 'Tutti i Corsi'}
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {availableCourses.map(course => (
+            {availableCourses.map(course => {
+                const hasDiscount = course.discountPrice !== null && course.discountPrice !== undefined && 
+                    (course.discountExpiresAt === null || course.discountExpiresAt === undefined || new Date(course.discountExpiresAt) > new Date());
+                
+                return (
                 <Card key={course.id} className="flex flex-col">
                   <CardHeader>
                     <div className="relative aspect-video w-full mb-4 overflow-hidden rounded-md bg-muted">
@@ -160,9 +166,22 @@ export function CoursesClient({ courses, userId, userName }: CoursesClientProps)
                       </div>
                     <div className="flex items-start justify-between mb-2">
                       <Badge variant="outline">Disponibile</Badge>
-                      <span className="text-sm font-semibold text-primary">
-                        €{course.price}
-                      </span>
+                      <div className="text-right">
+                          {hasDiscount ? (
+                            <>
+                                <span className="text-sm font-semibold text-red-600 block">
+                                    €{course.discountPrice}
+                                </span>
+                                <span className="text-xs text-muted-foreground line-through block">
+                                    €{course.price}
+                                </span>
+                            </>
+                          ) : (
+                            <span className="text-sm font-semibold text-primary">
+                                €{course.price}
+                            </span>
+                          )}
+                      </div>
                     </div>
                     <CardTitle className="line-clamp-2">{course.title}</CardTitle>
                     <CardDescription className="line-clamp-3">
@@ -188,7 +207,8 @@ export function CoursesClient({ courses, userId, userName }: CoursesClientProps)
                     </Button>
                   </CardFooter>
                 </Card>
-              ))}
+                );
+              })}
           </div>
           
           {availableCourses.length === 0 && enrolledCourses.length > 0 && (
@@ -306,8 +326,14 @@ export function CoursesClient({ courses, userId, userName }: CoursesClientProps)
                 isOpen={isPaymentModalOpen}
                 onClose={() => setIsPaymentModalOpen(false)}
                 onConfirm={processEnrollment}
-                price={selectedCourse.price}
+                price={
+                    selectedCourse.discountPrice !== null && selectedCourse.discountPrice !== undefined && 
+                    (selectedCourse.discountExpiresAt === null || selectedCourse.discountExpiresAt === undefined || new Date(selectedCourse.discountExpiresAt) > new Date())
+                    ? selectedCourse.discountPrice
+                    : selectedCourse.price
+                }
                 courseTitle={selectedCourse.title}
+                courseId={selectedCourse.id}
             />
         )}
     </div>

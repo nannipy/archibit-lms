@@ -38,6 +38,8 @@ model Course {
   title         String
   description   String    @db.Text
   price         Float
+  discountPrice Float?
+  discountExpiresAt DateTime?
   thumbnailUrl  String?
   isPublished   Boolean   @default(false)
   createdAt     DateTime  @default(now())
@@ -47,6 +49,7 @@ model Course {
   enrollments   Enrollment[]
   purchases     Purchase[]
   certificates  Certificate[]
+  coupons       Coupon[]
 }
 
 // ===== LESSONS =====
@@ -99,6 +102,30 @@ model Enrollment {
   @@index([courseId])
 }
 
+// ===== COUPONS =====
+model Coupon {
+  id            String    @id @default(cuid())
+  code          String    @unique
+  discountType  DiscountType
+  discountValue Float
+  expiresAt     DateTime?
+  maxUses       Int?
+  usedCount     Int       @default(0)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  
+  // Optional: Coupon specific to a course
+  courseId      String?
+  course        Course?   @relation(fields: [courseId], references: [id])
+  
+  purchases     Purchase[]
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
 // ===== PURCHASES =====
 model Purchase {
   id            String    @id @default(cuid())
@@ -107,12 +134,15 @@ model Purchase {
   amount        Float
   status        PurchaseStatus @default(PENDING)
   purchasedAt   DateTime  @default(now())
+  couponId      String?
   
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   course        Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  coupon        Coupon?   @relation(fields: [couponId], references: [id])
   
   @@index([userId])
   @@index([courseId])
+  @@index([couponId])
 }
 
 enum PurchaseStatus {

@@ -7,20 +7,69 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 
+import { validateCoupon } from '@/actions/enroll';
+import { toast } from 'sonner';
+
 interface PaymentModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onConfirm: () => Promise<void>;
+    onConfirm: (couponCode?: string) => Promise<void>;
     price: number;
     courseTitle: string;
+    courseId: string;
 }
 
-export function PaymentModal({ isOpen, onClose, onConfirm, price, courseTitle }: PaymentModalProps) {
+export function PaymentModal({ isOpen, onClose, onConfirm, price, courseTitle, courseId }: PaymentModalProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [cardError, setCardError] = useState('');
     const [cardNumber, setCardNumber] = useState('');
     const [expiry, setExpiry] = useState('');
     const [cvc, setCvc] = useState('');
+
+    // Coupon State
+    const [couponCode, setCouponCode] = useState('');
+    const [isCheckingCoupon, setIsCheckingCoupon] = useState(false);
+    const [couponError, setCouponError] = useState('');
+    const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountType: 'PERCENTAGE' | 'FIXED'; discountValue: number } | null>(null);
+
+    // Calculate display price
+    let finalPrice = price;
+    if (appliedCoupon) {
+        if (appliedCoupon.discountType === 'PERCENTAGE') {
+            finalPrice = price - (price * (appliedCoupon.discountValue / 100));
+        } else {
+            finalPrice = price - appliedCoupon.discountValue;
+        }
+        if (finalPrice < 0) finalPrice = 0;
+    }
+
+    const handleApplyCoupon = async () => {
+        if (!couponCode.trim()) return;
+
+        setIsCheckingCoupon(true);
+        setCouponError('');
+        setAppliedCoupon(null);
+
+        try {
+            const result = await validateCoupon(couponCode, courseId);
+            if (result.valid && result.coupon) {
+                setAppliedCoupon({
+                    code: result.coupon.code,
+                    discountType: result.coupon.discountType,
+                    discountValue: result.coupon.discountValue
+                });
+                toast.success('Coupon applicato!');
+            } else {
+                setCouponError(result.message || 'Coupon non valido');
+                setAppliedCoupon(null);
+            }
+        } catch (error) {
+            console.error(error);
+            setCouponError('Errore durante la verifica del coupon');
+        } finally {
+            setIsCheckingCoupon(false);
+        }
+    };
 
     const handleConfirm = async () => {
         setCardError('');
@@ -37,7 +86,7 @@ export function PaymentModal({ isOpen, onClose, onConfirm, price, courseTitle }:
         await new Promise(resolve => setTimeout(resolve, 2000));
 
         try {
-            await onConfirm();
+            await onConfirm(appliedCoupon?.code);
             onClose();
         } catch (error) {
             console.error('Payment error:', error);
@@ -60,7 +109,7 @@ export function PaymentModal({ isOpen, onClose, onConfirm, price, courseTitle }:
                 <DialogHeader>
                     <DialogTitle>Completa il pagamento</DialogTitle>
                     <DialogDescription>
-                        Inserisci i dettagli della carta per acquistare <strong>{courseTitle}</strong> a soli <strong>€{price}</strong>.
+                        Inserisci i dettagli della carta per acquistare <strong>{courseTitle}</strong>.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -87,7 +136,9 @@ export function PaymentModal({ isOpen, onClose, onConfirm, price, courseTitle }:
                         </div>
                     </div>
 
-                    <div className="grid gap-2">
+                    
+
+                    <div className="grid gap-2 mt-2">
                         <Label htmlFor="cardNumber">Numero Carta</Label>
                         <Input
                             id="cardNumber"
@@ -131,6 +182,39 @@ export function PaymentModal({ isOpen, onClose, onConfirm, price, courseTitle }:
                         Pagamento sicuro crittografato SSL a 256-bit
                     </div>
                 </div>
+                {/* Coupon Section */}
+                    <div className="flex gap-2 items-start">
+                        <div className="grid gap-2 flex-1">
+                            <Label htmlFor="coupon">Codice Coupon</Label>
+                            <Input
+                                id="coupon"
+                                placeholder="ES. PROMO2024"
+                                value={couponCode}
+                                onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                disabled={!!appliedCoupon || isCheckingCoupon}
+                            />
+                        </div>
+                        <Button 
+                            className="mt-5" 
+                            variant={appliedCoupon ? "outline" : "secondary"}
+                            onClick={appliedCoupon ? () => { setAppliedCoupon(null); setCouponCode(''); } : handleApplyCoupon}
+                            disabled={!couponCode || isCheckingCoupon}
+                        >
+                            {isCheckingCoupon ? '...' : appliedCoupon ? 'Rimuovi' : 'Applica'}
+                        </Button>
+                    </div>
+                    {couponError && <p className="text-sm text-red-500">{couponError}</p>}
+                    {appliedCoupon && (
+                        <div className="text-sm text-green-600 flex justify-between font-medium">
+                           <span>Coupon applicato: {appliedCoupon.code}</span>
+                           <span>- {appliedCoupon.discountType === 'PERCENTAGE' ? `${appliedCoupon.discountValue}%` : `€${appliedCoupon.discountValue}`}</span>
+                        </div>
+                    )}
+                    
+                    <div className="flex justify-between items-center text-lg font-bold border-t pt-2 mt-2">
+                        <span>Totale:</span>
+                        <span>€{finalPrice.toFixed(2)}</span>
+                    </div>
 
                 <DialogFooter>
                     <Button variant="outline" onClick={onClose} disabled={isLoading}>Annulla</Button>
@@ -144,7 +228,7 @@ export function PaymentModal({ isOpen, onClose, onConfirm, price, courseTitle }:
                                 Elaborazione...
                             </>
                         ) : (
-                            `Paga €${price}`
+                            `Paga €${finalPrice.toFixed(2)}`
                         )}
                     </Button>
                 </DialogFooter>

@@ -45,6 +45,8 @@ async function getCourses(userId: string) {
     title: course.title,
     description: course.description,
     price: course.price,
+    discountPrice: course.discountPrice,
+    discountExpiresAt: course.discountExpiresAt,
     thumbnailUrl: course.thumbnailUrl,
     _count: course._count,
     progress: course.enrollments[0]?.progress || 0,
@@ -89,7 +91,7 @@ export default async function CoursesPage() {
         <CoursesClient 
             courses={courses} 
             userId={user.id} 
-            userName={`${dbUser?.firstName || ''} ${dbUser?.lastName || ''}`}
+            userName={dbUser?.name || ''}
         />
     </Suspense>
   );

@@ -14,6 +14,8 @@ interface CourseFormProps {
         title: string;
         description: string;
         price: number;
+        discountPrice?: number | null;
+        discountExpiresAt?: Date | null;
         thumbnailUrl?: string | null;
         isPublished: boolean;
     };
@@ -103,6 +105,31 @@ export function CourseForm({ initialData, action, submitLabel }: CourseFormProps
                             className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
                         />
                         <Label htmlFor="isPublished">Publish immediately</Label>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                             <Label htmlFor="discountPrice">Discount Price (€)</Label>
+                             <Input
+                                id="discountPrice"
+                                name="discountPrice"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                defaultValue={initialData?.discountPrice || ''}
+                                placeholder="Optional"
+                             />
+                        </div>
+
+                        <div className="space-y-2">
+                             <Label htmlFor="discountExpiresAt">Discount Expiry</Label>
+                             <Input
+                                id="discountExpiresAt"
+                                name="discountExpiresAt"
+                                type="datetime-local"
+                                defaultValue={initialData?.discountExpiresAt ? new Date(initialData.discountExpiresAt).toISOString().slice(0, 16) : ''}
+                             />
+                        </div>
                     </div>
 
                     <div className="flex justify-end gap-4">

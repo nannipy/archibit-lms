@@ -6,7 +6,35 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
-export async function enrollUser(courseId: string) {
+export async function validateCoupon(code: string, courseId: string) {
+    const coupon = await prisma.coupon.findUnique({
+        where: { code: code.toUpperCase() },
+    });
+
+    if (!coupon) {
+        return { valid: false, message: 'Invalid coupon code' };
+    }
+
+    if (!coupon.isActive) {
+        return { valid: false, message: 'Coupon is inactive' };
+    }
+
+    if (coupon.expiresAt && new Date(coupon.expiresAt) < new Date()) {
+        return { valid: false, message: 'Coupon expired' };
+    }
+
+    if (coupon.maxUses && coupon.usedCount >= coupon.maxUses) {
+        return { valid: false, message: 'Coupon usage limit reached' };
+    }
+
+    if (coupon.courseId && coupon.courseId !== courseId) {
+        return { valid: false, message: 'Coupon not valid for this course' };
+    }
+
+    return { valid: true, coupon };
+}
+
+export async function enrollUser(courseId: string, couponCode?: string) {
     const cookieStore = await cookies();
 
     const supabase = createServerClient(
@@ -49,9 +77,36 @@ export async function enrollUser(courseId: string) {
         throw new Error('Course not found');
     }
 
-    // 2. Mock Payment Logic (Since we are moving from client-side mock)
-    // In a real app, we would create a Stripe Checkout Session here and return the URL.
-    // For now, we simulate a successful "free" purchase or "mock" credit card on server.
+    // Determine Base Price (considering course discount)
+    let finalPrice = course.price;
+    const hasCourseDiscount = course.discountPrice !== null && course.discountPrice !== undefined &&
+        (course.discountExpiresAt === null || course.discountExpiresAt === undefined || new Date(course.discountExpiresAt) > new Date());
+
+    if (hasCourseDiscount) {
+        finalPrice = course.discountPrice!;
+    }
+
+    // 2. Validate Coupon if provided
+    let couponId = null;
+    if (couponCode) {
+        const validation = await validateCoupon(couponCode, courseId);
+        if (!validation.valid || !validation.coupon) {
+            return { success: false, message: validation.message, error: validation.message };
+        }
+
+        const coupon = validation.coupon;
+        couponId = coupon.id;
+
+        // Apply Coupon Discount
+        if (coupon.discountType === 'PERCENTAGE') {
+            finalPrice = finalPrice - (finalPrice * (coupon.discountValue / 100));
+        } else {
+            finalPrice = finalPrice - coupon.discountValue;
+        }
+
+        // Ensure price doesn't go below 0
+        if (finalPrice < 0) finalPrice = 0;
+    }
 
     // Check if already enrolled
     const existingEnrollment = await prisma.enrollment.findUnique({
@@ -68,24 +123,33 @@ export async function enrollUser(courseId: string) {
     }
 
     try {
-        // Transaction: Create Purchase + Enrollment
-        await prisma.$transaction([
-            prisma.purchase.create({
+        // Transaction: Create Purchase + Enrollment + Increment Coupon Usage
+        await prisma.$transaction(async (tx) => {
+            await tx.purchase.create({
                 data: {
                     userId: user.id,
                     courseId: course.id,
-                    amount: course.price,
-                    status: 'COMPLETED', // Auto-complete for mock
+                    amount: finalPrice,
+                    status: 'COMPLETED',
+                    couponId: couponId
                 }
-            }),
-            prisma.enrollment.create({
+            });
+
+            await tx.enrollment.create({
                 data: {
                     userId: user.id,
                     courseId: course.id,
                     progress: 0,
                 }
-            })
-        ]);
+            });
+
+            if (couponId) {
+                await tx.coupon.update({
+                    where: { id: couponId },
+                    data: { usedCount: { increment: 1 } }
+                });
+            }
+        });
 
         revalidatePath('/courses');
         return { success: true };

@@ -49,12 +49,20 @@ export default async function EditCoursePage(props: Props) {
     const thumbnailUrl = formData.get('thumbnailUrl') as string;
     const isPublished = formData.get('isPublished') === 'on';
 
+    const discountPriceStr = formData.get('discountPrice') as string;
+    const discountPrice = discountPriceStr ? parseFloat(discountPriceStr) : null;
+
+    const discountExpiresAtStr = formData.get('discountExpiresAt') as string;
+    const discountExpiresAt = discountExpiresAtStr ? new Date(discountExpiresAtStr) : null;
+
     await prisma.course.update({
       where: { id: courseId },
       data: {
         title,
         description,
         price,
+        discountPrice,
+        discountExpiresAt,
         thumbnailUrl,
         isPublished,
       },

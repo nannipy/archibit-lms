@@ -25,11 +25,19 @@ export default async function CreateCoursePage() {
     const thumbnailUrl = formData.get('thumbnailUrl') as string;
     const isPublished = formData.get('isPublished') === 'on';
 
+    const discountPriceStr = formData.get('discountPrice') as string;
+    const discountPrice = discountPriceStr ? parseFloat(discountPriceStr) : null;
+    
+    const discountExpiresAtStr = formData.get('discountExpiresAt') as string;
+    const discountExpiresAt = discountExpiresAtStr ? new Date(discountExpiresAtStr) : null;
+
     const course = await prisma.course.create({
       data: {
         title,
         description,
         price,
+        discountPrice,
+        discountExpiresAt,
         thumbnailUrl,
         isPublished,
       },
