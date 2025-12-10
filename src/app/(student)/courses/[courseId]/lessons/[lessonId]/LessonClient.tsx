@@ -33,7 +33,9 @@ interface LessonClientProps {
     quizMarkers: QuizMarker[];
     order: number;
   };
+
   initialMaxViewedTime: number;
+  initialCurrentTime: number;
   previousLessonId?: string;
   previousLessonTitle?: string;
   nextLessonId?: string;
@@ -44,6 +46,7 @@ export default function LessonClient({
     course, 
     lesson, 
     initialMaxViewedTime,
+    initialCurrentTime,
     previousLessonId,
     previousLessonTitle,
     nextLessonId,
@@ -56,7 +59,7 @@ export default function LessonClient({
   const [isPlaying, setIsPlaying] = useState(false);
   
   const videoStateRef = useRef({
-    currentTime: 0,
+    currentTime: initialCurrentTime,
     playbackRate: 1.0,
   });
 
@@ -119,6 +122,7 @@ export default function LessonClient({
             videoUrl={lesson.videoUrl}
             duration={lesson.videoDuration}
             maxViewedTime={maxViewedTime}
+            initialCurrentTime={initialCurrentTime}
             quizMarkers={lesson.quizMarkers}
             onProgress={handleProgress}
             onQuizTrigger={handleQuizTrigger}
@@ -157,7 +161,11 @@ export default function LessonClient({
               </Link>
             </Button>
           ) : (
-            <Button asChild>
+            <Button 
+              asChild 
+              disabled={maxViewedTime < lesson.videoDuration * 0.9} 
+              className={maxViewedTime < lesson.videoDuration * 0.9 ? "opacity-50 cursor-not-allowed pointer-events-none" : ""}
+            >
               <Link href={`/courses/${course.id}`} className="flex items-center gap-2">
                 Completa corso
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

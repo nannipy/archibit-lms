@@ -11,6 +11,7 @@ interface SecureVideoPlayerProps {
   duration: number;
   maxViewedTime: number; // from DB
   quizMarkers: QuizMarker[];
+  initialCurrentTime?: number;
   onProgress: (time: number) => void;
   onQuizTrigger: (marker: QuizMarker) => void;
   onPlayStateChange?: (isPlaying: boolean) => void;
@@ -21,13 +22,14 @@ export default function SecureVideoPlayer({
   videoUrl,
   duration,
   maxViewedTime,
+  initialCurrentTime = 0,
   quizMarkers,
   onProgress,
   onQuizTrigger,
   onPlayStateChange,
 }: SecureVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [currentTime, setCurrentTime] = useState(0);
+  const [currentTime, setCurrentTime] = useState(initialCurrentTime);
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [volume, setVolume] = useState(1);
@@ -76,6 +78,30 @@ export default function SecureVideoPlayer({
 
     return () => { isMounted = false; };
   }, [videoUrl]);
+
+  // ===== RESUME PLAYBACK =====
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !playableUrl || initialCurrentTime <= 0) return;
+
+    const handleCanPlay = () => {
+        if (Math.abs(video.currentTime - initialCurrentTime) > 1) {
+             video.currentTime = initialCurrentTime;
+             lastTimeRef.current = initialCurrentTime;
+        }
+    };
+    
+    // Attempt seek immediately if ready, else wait for event
+    if (video.readyState >= 1) {
+        handleCanPlay();
+    } else {
+        video.addEventListener('loadedmetadata', handleCanPlay);
+    }
+
+    return () => {
+        video.removeEventListener('loadedmetadata', handleCanPlay);
+    };
+  }, [playableUrl, initialCurrentTime]);
 
   // ===== SECURITY: Disable Context Menu =====
   const handleContextMenu = (e: React.MouseEvent) => {
@@ -195,12 +221,20 @@ export default function SecureVideoPlayer({
       }
     };
 
+    const handleEnded = () => {
+        // Force update to max duration when video ends
+        lastTimeRef.current = duration;
+        onProgress(duration);
+    };
+
     video.addEventListener('timeupdate', handleTimeUpdate);
+    video.addEventListener('ended', handleEnded);
     
     return () => {
       video.removeEventListener('timeupdate', handleTimeUpdate);
+      video.removeEventListener('ended', handleEnded);
     };
-  }, [onProgress, loadingUrl]);
+  }, [onProgress, loadingUrl, duration]);
 
   // ===== PLAYBACK CONTROLS =====
   const togglePlay = () => {

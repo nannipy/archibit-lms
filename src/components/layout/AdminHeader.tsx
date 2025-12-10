@@ -15,7 +15,6 @@ interface AdminHeaderProps {
 const adminNavItems = [
   { label: "Dashboard", href: "/admin/dashboard" },
   { label: "Courses", href: "/admin/courses" },
-  { label: "Analytics", href: "/admin/analytics" },
 ];
 
 export function AdminHeader({ user }: AdminHeaderProps) {

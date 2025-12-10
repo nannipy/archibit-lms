@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { redirect, notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
+import { getViewingProgress } from '@/lib/services/progress';
 import LessonClient from './LessonClient';
 import { Suspense } from 'react';
 import { LessonSkeleton } from '@/components/skeletons/LessonSkeleton';
@@ -77,14 +78,10 @@ export default async function LessonPage(props: LessonPageProps) {
   }
 
   // Fetch ViewingLog
-  const viewingLog = await prisma.viewingLog.findFirst({
-    where: {
-        userId: user.id,
-        lessonId: lesson.id
-    }
-  });
+  const progress = await getViewingProgress(user.id, lesson.id);
 
-  const maxViewedTime = viewingLog ? viewingLog.maxViewedTime : 0;
+  const maxViewedTime = progress ? progress.maxViewedTime : 0;
+  const currentTime = progress ? progress.currentTime : 0;
 
   // Determine prev/next lessons
   const currentIndex = course.lessons.findIndex(l => l.id === lesson.id);
@@ -123,6 +120,7 @@ export default async function LessonPage(props: LessonPageProps) {
         }}
         lesson={safeLesson}
         initialMaxViewedTime={maxViewedTime}
+        initialCurrentTime={currentTime}
         previousLessonId={previousLesson?.id}
         previousLessonTitle={previousLesson?.title}
         nextLessonId={nextLesson?.id}
