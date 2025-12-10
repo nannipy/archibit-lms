@@ -2,6 +2,8 @@
 
 import { useRef, useEffect, useState } from 'react';
 import { QuizMarker } from '@/types';
+import { getSignedVideoUrl } from '@/app/(admin)/admin/courses/video-actions';
+import { Loader2 } from 'lucide-react';
 
 interface SecureVideoPlayerProps {
   lessonId: string;
@@ -27,9 +29,53 @@ export default function SecureVideoPlayer({
   const videoRef = useRef<HTMLVideoElement>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [volume, setVolume] = useState(1);
+  const [playableUrl, setPlayableUrl] = useState<string | null>(null);
+  const [loadingUrl, setLoadingUrl] = useState(true);
+  
   const lastTimeRef = useRef(0);
   const triggeredQuizzesRef = useRef<Set<string>>(new Set());
+
+  // ===== FETCH SIGNED URL =====
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchSignedUrl() {
+       // Reset states on url change
+       setLoadingUrl(true);
+       setError(null);
+       setPlayableUrl(null);
+
+       if (!videoUrl) {
+           setLoadingUrl(false);
+           return;
+       }
+
+       // Only attempt to sign if it looks like a supabase storage url 
+       // (Optimization: can also just always try if we want to support other providers later via same action)
+       try {
+           const signed = await getSignedVideoUrl(videoUrl);
+           if (isMounted) {
+               if (signed) {
+                   setPlayableUrl(signed);
+               } else {
+                   // Fallback to original if signing fails (might be public)
+                   setPlayableUrl(videoUrl);
+               }
+           }
+       } catch (err) {
+           console.error("Failed to get signed url", err);
+           if (isMounted) setPlayableUrl(videoUrl);
+       } finally {
+           if (isMounted) setLoadingUrl(false);
+       }
+    }
+
+    fetchSignedUrl();
+
+    return () => { isMounted = false; };
+  }, [videoUrl]);
 
   // ===== SECURITY: Disable Context Menu =====
   const handleContextMenu = (e: React.MouseEvent) => {
@@ -58,7 +104,7 @@ export default function SecureVideoPlayer({
       video.removeEventListener('ratechange', enforcePlaybackRate);
       clearInterval(interval);
     };
-  }, []);
+  }, [loadingUrl]); // Add dep
 
   // ===== SECURITY: Prevent Forward Seeking =====
   useEffect(() => {
@@ -83,7 +129,7 @@ export default function SecureVideoPlayer({
     return () => {
       video.removeEventListener('seeking', handleSeeking);
     };
-  }, [maxViewedTime]);
+  }, [maxViewedTime, loadingUrl]);
 
   // ===== QUIZ MARKER DETECTION =====
   useEffect(() => {
@@ -114,7 +160,7 @@ export default function SecureVideoPlayer({
     return () => {
       video.removeEventListener('timeupdate', checkQuizMarkers);
     };
-  }, [quizMarkers, onQuizTrigger]);
+  }, [quizMarkers, onQuizTrigger, loadingUrl]);
 
   // ===== PAGE VISIBILITY API =====
   useEffect(() => {
@@ -154,12 +200,12 @@ export default function SecureVideoPlayer({
     return () => {
       video.removeEventListener('timeupdate', handleTimeUpdate);
     };
-  }, [onProgress]);
+  }, [onProgress, loadingUrl]);
 
   // ===== PLAYBACK CONTROLS =====
   const togglePlay = () => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || error || !video.src) return;
 
     if (video.paused) {
       video.play();
@@ -200,20 +246,59 @@ export default function SecureVideoPlayer({
   };
 
   return (
-    <div className="relative w-full max-w-5xl mx-auto bg-black rounded-lg overflow-hidden shadow-2xl">
+    <div className="relative w-full max-w-5xl mx-auto bg-black rounded-lg overflow-hidden shadow-2xl min-h-[300px] flex flex-col">
       {/* Video Element */}
-      <video
-        ref={videoRef}
-        src={videoUrl}
-        className="w-full aspect-video"
-        onContextMenu={handleContextMenu}
-        controlsList="nodownload nofullscreen noremoteplayback"
-        disablePictureInPicture
-        playsInline
-      />
+      {playableUrl && !loadingUrl && (
+          <video
+            ref={videoRef}
+            src={playableUrl}
+            className="w-full aspect-video"
+            onContextMenu={handleContextMenu}
+            controlsList="nodownload nofullscreen noremoteplayback"
+            disablePictureInPicture
+            playsInline
+            onError={() => {
+                const err = videoRef.current?.error;
+                let msg = 'Error loading video.';
+                if (err) {
+                     if (err.code === 3) msg = 'Video decoding failed.';
+                     if (err.code === 4) msg = 'Video source not accessible.';
+                }
+                console.error('Video Error:', err, playableUrl);
+                setError(msg);
+            }}
+          />
+      )}
+
+      {loadingUrl && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-900 text-white">
+              <Loader2 className="w-8 h-8 animate-spin" />
+              <span className="ml-2">Loading secure video...</span>
+          </div>
+      )}
+      
+      {error && !loadingUrl && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/90 z-50">
+           <div className="text-center p-6 max-w-md">
+             <div className="text-red-500 mb-2">
+               <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+               </svg>
+             </div>
+             <p className="text-white font-medium mb-1">Playback Error</p>
+             <p className="text-gray-400 text-sm mb-4">{error}</p>
+             <button 
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-white text-black rounded hover:bg-gray-200 text-sm"
+             >
+                Reload Page
+             </button>
+           </div>
+        </div>
+      )}
 
       {/* Custom Controls */}
-      <div className="bg-gradient-to-t from-black/80 to-transparent p-4">
+      <div className="bg-gradient-to-t from-black/80 to-transparent p-4 mt-auto">
         {/* Progress Bar */}
         <div className="mb-4">
           <input
@@ -222,7 +307,8 @@ export default function SecureVideoPlayer({
             max={duration}
             value={currentTime}
             onChange={handleSeek}
-            className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+            disabled={!!error || loadingUrl}
+            className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer disabled:opacity-50"
             style={{
               background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${(currentTime / duration) * 100}%, #374151 ${(currentTime / duration) * 100}%, #374151 100%)`
             }}
@@ -239,7 +325,8 @@ export default function SecureVideoPlayer({
             {/* Play/Pause Button */}
             <button
               onClick={togglePlay}
-              className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full transition-colors"
+              disabled={!!error || loadingUrl}
+              className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isPlaying ? (
                 <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">

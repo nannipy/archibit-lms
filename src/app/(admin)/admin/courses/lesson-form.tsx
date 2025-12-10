@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea'; // Assuming textarea exists
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { VideoUpload } from '@/components/video-upload';
 
 interface LessonFormProps {
     initialData?: {
@@ -27,6 +28,8 @@ interface LessonFormProps {
 
 export function LessonForm({ initialData, courseId, action, submitLabel, showDelete, deleteAction }: LessonFormProps) {
     const [loading, setLoading] = useState(false);
+    const [videoUrl, setVideoUrl] = useState(initialData?.videoUrl || '');
+    const [videoDuration, setVideoDuration] = useState(initialData?.videoDuration || 0);
     const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -94,29 +97,16 @@ export function LessonForm({ initialData, courseId, action, submitLabel, showDel
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="videoUrl">Video URL</Label>
-                            <Input
-                                id="videoUrl"
-                                name="videoUrl"
-                                required
-                                defaultValue={initialData?.videoUrl}
-                                placeholder="https://stream.mux.com/..."
-                            />
-                        </div>
-                        <div className="space-y-2">
-                             <Label htmlFor="videoDuration">Duration (seconds)</Label>
-                            <Input
-                                id="videoDuration"
-                                name="videoDuration"
-                                type="number"
-                                min="0"
-                                required
-                                defaultValue={initialData?.videoDuration}
-                                placeholder="360"
-                            />
-                        </div>
+                    <div className="space-y-4">
+                        <Label>Lesson Video</Label>
+                        <VideoUpload
+                            value={videoUrl}
+                            onChange={(url) => setVideoUrl(url)}
+                            onDurationChange={(duration) => setVideoDuration(duration)}
+                            courseId={courseId}
+                        />
+                        <input type="hidden" name="videoUrl" value={videoUrl} />
+                        <input type="hidden" name="videoDuration" value={videoDuration} />
                     </div>
 
                     <div className="space-y-2">

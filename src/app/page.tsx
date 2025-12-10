@@ -1,8 +1,5 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import Image from 'next/image';
-
 
 export default function Home() {
   return (
@@ -21,24 +18,18 @@ export default function Home() {
             
             <div className="relative z-10 flex flex-col items-start h-full justify-center">
               <div className="flex items-center gap-3 mb-6">
-                 <Image src="/logo.png" alt="Archibit Logo" width={60} height={60} className="w-auto" />
+                 <img src="/logo.png" alt="Logo Archibit" width={200} height={200}/>
               </div>
-              
-              <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 leading-[1.1]">
-                Master the Art of <br/>
-                <span className="text-primary italic font-serif">Architecture</span>
-              </h2>
-              
               <p className="text-lg text-muted-foreground max-w-xl mb-8 leading-relaxed">
-                An advanced Learning Management System designed for precision, creativity, and secure certification.
+                Un sistema di gestione dell'apprendimento avanzato progettato per precisione, creatività e certificazione sicura.
               </p>
 
               <div className="flex flex-wrap gap-3">
                 <Button asChild size="lg" className="rounded-full px-8 text-base shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all duration-300">
-                  <Link href="/login">Start Learning</Link>
+                  <Link href="/login">Inizia ad Imparare</Link>
                 </Button>
                 <Button asChild variant="secondary" size="lg" className="rounded-full px-8 bg-white/50 hover:bg-white/80 border-0 text-foreground">
-                  <Link href="/courses">Browse Catalog</Link>
+                  <Link href="/courses">Sfoglia il Catalogo</Link>
                 </Button>
               </div>
               
@@ -56,9 +47,9 @@ export default function Home() {
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                 </div>
                 <div>
-                   <h3 className="text-xl font-semibold mb-2">Secure Playback</h3>
+                   <h3 className="text-xl font-semibold mb-2">Riproduzione Sicura</h3>
                    <p className="text-sm text-muted-foreground leading-relaxed">
-                     Heartbeat tracking and anti-skip technology ensures every second of learning is verified.
+                     Il tracciamento del battito cardiaco e la tecnologia anti-salto garantiscono che ogni secondo di apprendimento sia verificato.
                    </p>
                 </div>
              </div>
@@ -66,7 +57,7 @@ export default function Home() {
              <div className="bg-primary text-primary-foreground rounded-[2rem] p-6 lg:p-8 shadow-lg shadow-primary/20 flex-1 flex flex-col justify-center relative overflow-hidden">
                 <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
                 <h3 className="text-3xl font-bold mb-1">100%</h3>
-                <p className="text-primary-foreground/90 font-medium">Completion Verified</p>
+                <p className="text-primary-foreground/90 font-medium">Completamento Verificato</p>
              </div>
           </div>
 
@@ -76,9 +67,9 @@ export default function Home() {
                <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center text-primary">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                </div>
-               <h3 className="text-xl font-semibold">Interactive Quizzes</h3>
+               <h3 className="text-xl font-semibold">Quiz Interattivi</h3>
                <p className="text-muted-foreground">
-                 Smart markers automatically rewind to relevant lessons when you miss a question.
+                Marker smart automaticamente indietreggiano ai corsi pertinenti quando manchi una domanda.
                </p>
              </div>
              {/* Abstract visual representation of quiz */}
@@ -100,8 +91,8 @@ export default function Home() {
              <div className="flex flex-col h-full justify-between">
                 <div className="flex items-start justify-between mb-4">
                   <div className="space-y-1">
-                    <h3 className="text-xl font-semibold">Certified Excellence</h3>
-                    <p className="text-sm text-muted-foreground">Official archibit documentation</p>
+                    <h3 className="text-xl font-semibold">Certificato di Eccellenza</h3>
+                    <p className="text-sm text-muted-foreground">Documentazione ufficiale archibit</p>
                   </div>
                   <div className="bg-primary/10 p-3 rounded-xl text-primary">
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4" /></svg>

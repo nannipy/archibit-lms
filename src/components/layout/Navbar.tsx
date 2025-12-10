@@ -1,4 +1,7 @@
+'use client';
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Menu, LogOut, User } from "lucide-react";
 
@@ -12,19 +15,23 @@ interface NavbarProps {
   user?: {
     name?: string | null;
     email?: string | null;
+    role?: 'STUDENT' | 'ADMIN';
   } | null;
   onLogout?: () => void;
 }
 
 export function Navbar({ 
   items = [
-    { label: "Home", href: "/" },
     { label: "Corsi", href: "/courses" },
-    { label: "Chi Siamo", href: "/about" },
+    { label: "Certificati", href: "/certificates" },
   ],
   user,
   onLogout 
 }: NavbarProps) {
+  const pathname = usePathname();
+  const isAdmin = user?.role === 'ADMIN';
+  const isOnAdminPage = pathname?.startsWith('/admin');
+
   return (
     <nav className="fixed top-4 md:top-6 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none">
       {/* 
@@ -36,7 +43,7 @@ export function Navbar({
         
         {/* Left: Logo */}
         <div className="flex items-center gap-2">
-           <Link href="/" className="flex items-center gap-2 group">
+           <Link href={isOnAdminPage ? "/admin/dashboard" : "/"} className="flex items-center gap-2 group">
               <div className="relative w-18 h-18 overflow-hidden flex items-center justify-center transition-colors">
                  <img src="/logo.png" alt="Archibit" className="w-full h-full object-contain" />
               </div>
@@ -44,7 +51,7 @@ export function Navbar({
         </div>
 
         {/* Center: Desktop Navigation */}
-        <div className="hidden md:flex items-center gap-8">
+        <div className="hidden md:flex gap-8 ">
            {items.map((item) => (
              <Link 
                key={item.href} 
@@ -67,6 +74,13 @@ export function Navbar({
            <div className="hidden md:flex items-center gap-3">
              {user ? (
                <>
+                 {isAdmin && (
+                    <Button asChild variant="ghost" size="sm" className="rounded-full text-muted-foreground hover:text-primary">
+                        <Link href={isOnAdminPage ? "/courses" : "/admin/dashboard"}>
+                          {isOnAdminPage ? "Area Studente" : "Area Admin"}
+                        </Link>
+                    </Button>
+                 )}
                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/50 text-sm font-medium text-muted-foreground">
                    <User className="w-4 h-4" />
                    <span className="max-w-[150px] truncate">{user.name || user.email}</span>

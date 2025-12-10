@@ -8,6 +8,7 @@ interface AdminHeaderProps {
   user: {
     name: string | null;
     email: string;
+    role?: 'STUDENT' | 'ADMIN';
   };
 }
 

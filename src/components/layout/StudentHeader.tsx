@@ -4,7 +4,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { Navbar } from '@/components/layout/Navbar';
 
 const studentNavItems = [
-  { label: "Home", href: "/" },
   { label: "Corsi", href: "/courses" },
   { label: "Certificati", href: "/certificates" },
 ];
