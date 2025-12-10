@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@/hooks/useAuth';
+import { AuthUser, useAuth } from '@/hooks/useAuth';
 import { Navbar } from '@/components/layout/Navbar';
 
 const studentNavItems = [
@@ -8,11 +8,16 @@ const studentNavItems = [
   { label: "Certificati", href: "/certificates" },
 ];
 
-export function StudentHeader() {
-  const { user, signOut } = useAuth();
+interface StudentHeaderProps {
+    initialUser?: AuthUser | null;
+}
+
+export function StudentHeader({ initialUser }: StudentHeaderProps) {
+  const { user, signOut, loading } = useAuth();
   
-  // Optionally handle loading state if critical, but Navbar handles null user gracefully (shows login).
-  // For student section, usually we are authed.
+  // Use client-side user if loaded, otherwise fallback to server-side initialUser
+  // This handles the gap before client-side auth initializes
+  const displayUser = loading ? initialUser : (user ?? initialUser);
   
   return (
     <header className="relative z-50">
@@ -20,7 +25,7 @@ export function StudentHeader() {
       <div className="h-24 md:h-28" /> 
       <Navbar 
         items={studentNavItems}
-        user={user}
+        user={displayUser}
         onLogout={signOut}
       />
     </header>

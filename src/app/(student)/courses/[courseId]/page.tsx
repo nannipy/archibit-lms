@@ -100,19 +100,16 @@ export default async function CourseDetailPage(props: { params: Promise<{ course
   // Users might have added 'completed' column later or the client code was assuming it.
   // I will fetch ViewingLogs and map completion based on presence.
 
-  const viewingLogs = await prisma.viewingLog.findMany({
+  // Fetch Completed Lessons (via LessonProgress)
+  const lessonProgresses = await prisma.lessonProgress.findMany({
       where: {
           userId: user.id,
-          lessonId: { in: course.lessons.map(l => l.id) }
+          lessonId: { in: course.lessons.map(l => l.id) },
+          isCompleted: true
       }
   });
 
-  // Simple logic: if maxViewedTime > duration * 0.9 -> completed.
-  const completedLessonIds = viewingLogs.filter(log => {
-       const lesson = course.lessons.find(l => l.id === log.lessonId);
-       if (!lesson) return false;
-       return log.maxViewedTime >= (lesson.videoDuration || 0) * 0.9;
-  }).map(l => l.lessonId);
+  const completedLessonIds = lessonProgresses.map(lp => lp.lessonId);
 
 
   return (
@@ -123,6 +120,7 @@ export default async function CourseDetailPage(props: { params: Promise<{ course
                 title: course.title,
                 description: course.description,
                 price: course.price,
+                thumbnailUrl: course.thumbnailUrl,
                 lessons: course.lessons.map(l => ({
                     id: l.id,
                     title: l.title,

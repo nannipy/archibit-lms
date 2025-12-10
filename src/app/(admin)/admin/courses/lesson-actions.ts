@@ -33,6 +33,14 @@ export async function createLesson(formData: FormData) {
     const videoDuration = parseInt(formData.get('videoDuration') as string);
     const order = parseInt(formData.get('order') as string);
 
+    const quizzesJson = formData.get('quizzes') as string;
+    let quizzes = [];
+    try {
+        if (quizzesJson) quizzes = JSON.parse(quizzesJson);
+    } catch (e) {
+        console.error("Failed to parse quizzes", e);
+    }
+
     await prisma.lesson.create({
         data: {
             courseId,
@@ -41,6 +49,13 @@ export async function createLesson(formData: FormData) {
             videoUrl,
             videoDuration,
             order,
+            quizMarkers: {
+                create: quizzes.map((q: any) => ({
+                    timestamp: q.timestamp,
+                    question: q.question,
+                    options: q.options // Prisma supports Json type arrays if mapped correctly in schema, or simple Json
+                }))
+            }
         },
     });
 
@@ -56,6 +71,14 @@ export async function updateLesson(lessonId: string, courseId: string, formData:
     const videoDuration = parseInt(formData.get('videoDuration') as string);
     const order = parseInt(formData.get('order') as string);
 
+    const quizzesJson = formData.get('quizzes') as string;
+    let quizzes = [];
+    try {
+        if (quizzesJson) quizzes = JSON.parse(quizzesJson);
+    } catch (e) {
+        console.error("Failed to parse quizzes", e);
+    }
+
     await prisma.lesson.update({
         where: { id: lessonId },
         data: {
@@ -64,6 +87,14 @@ export async function updateLesson(lessonId: string, courseId: string, formData:
             videoUrl,
             videoDuration,
             order,
+            quizMarkers: {
+                deleteMany: {},
+                create: quizzes.map((q: any) => ({
+                    timestamp: q.timestamp,
+                    question: q.question,
+                    options: q.options
+                }))
+            }
         },
     });
 

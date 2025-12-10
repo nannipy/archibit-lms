@@ -48,6 +48,7 @@ async function getCourses(userId: string) {
     thumbnailUrl: course.thumbnailUrl,
     _count: course._count,
     progress: course.enrollments[0]?.progress || 0,
+    completedAt: course.enrollments[0]?.completedAt || null,
     isEnrolled: course.enrollments.length > 0,
     lessonsCount: course.lessons.length // Map for compatibility if needed
   })) as CourseWithProgress[];
@@ -78,9 +79,18 @@ export default async function CoursesPage() {
 
   const courses = await getCourses(user.id);
 
+  // Fetch user details for name
+  const dbUser = await prisma.user.findUnique({
+      where: { id: user.id }
+  });
+
   return (
     <Suspense fallback={<CoursesListSkeleton />}>
-        <CoursesClient courses={courses} userId={user.id} />
+        <CoursesClient 
+            courses={courses} 
+            userId={user.id} 
+            userName={`${dbUser?.firstName || ''} ${dbUser?.lastName || ''}`}
+        />
     </Suspense>
   );
 }

@@ -1,118 +1,200 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { prisma } from '@/lib/prisma';
+import { 
+  Award, 
+  Building2,
+  CheckCircle2, 
+  GraduationCap, 
+  MonitorPlay,
+  ArrowRight,
+  ShieldCheck
+} from 'lucide-react';
 
-export default function Home() {
+export default async function Home() {
+  // Fetch top 3 featured courses
+  const featuredCourses = await prisma.course.findMany({
+    take: 3,
+    where: { isPublished: true },
+    orderBy: { createdAt: 'desc' },
+    include: {
+      _count: { select: { lessons: true } }
+    }
+  });
+
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans">
-      {/* Hero / Header Section in Bento Style */}
-      <div className="container mx-auto p-4 md:p-8 max-w-7xl">
-        {/* Main Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6">
+    <div className="min-h-screen bg-background text-foreground font-sans p-4 md:p-8">
+      
+      <div className="container mx-auto max-w-7xl space-y-6">
+        
+        {/* --- BENTO GRID SECTION --- */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
           
-          {/* Logo & Intro Card - Large Bento Item */}
-          <div className="col-span-1 md:col-span-8 lg:col-span-8 bg-card/50 backdrop-blur-md rounded-[2rem] p-8 md:p-12 border border-white/20 shadow-sm relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
-               {/* Abstract pattern or large icon could go here */}
-               <div className="w-32 h-32 rounded-full bg-primary blur-3xl"></div>
-            </div>
+          {/* 1. HERO CARD (Large) */}
+          <div className="col-span-1 md:col-span-8 bg-card border border-border rounded-3xl p-8 md:p-12 relative overflow-hidden shadow-sm flex flex-col justify-center min-h-[400px]">
+            {/* Background decoration */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
             
-            <div className="relative z-10 flex flex-col items-start h-full justify-center">
-              <div className="flex items-center gap-3 mb-6">
-                 <img src="/logo.png" alt="Logo Archibit" width={200} height={200}/>
-              </div>
-              <p className="text-lg text-muted-foreground max-w-xl mb-8 leading-relaxed">
-                Un sistema di gestione dell'apprendimento avanzato progettato per precisione, creatività e certificazione sicura.
-              </p>
-
-              <div className="flex flex-wrap gap-3">
-                <Button asChild size="lg" className="rounded-full px-8 text-base shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all duration-300">
-                  <Link href="/login">Inizia ad Imparare</Link>
-                </Button>
-                <Button asChild variant="secondary" size="lg" className="rounded-full px-8 bg-white/50 hover:bg-white/80 border-0 text-foreground">
-                  <Link href="/courses">Sfoglia il Catalogo</Link>
-                </Button>
+            <div className="relative z-10 max-w-2xl">              
+               <div className="mb-6">
+                 <Image src="/logo.png" alt="ArchiBit Logo" width={200} height={100} className="h-26 w-auto object-contain" />
               </div>
               
-              <div className="mt-8 pt-6 border-t border-border/50 w-full flex items-center gap-2 text-sm text-muted-foreground/80">
-                <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-semibold">DEMO</span>
-                <span>student@demo.com</span> • <span>password</span>
+              
+              <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
+                Piattaforma professionale per la formazione continua di Architetti e Ingegneri.
+                Corsi BIM, Autodesk certificati e rilascio di <strong>Crediti Formativi Professionali (CFP)</strong>.
+              </p>
+
+              <div className="flex flex-wrap gap-4">
+                <Button asChild size="lg" className="rounded-full px-8">
+                  <Link href="/courses">Catalogo Corsi</Link>
+                </Button>
+                <Button asChild variant="outline" size="lg" className="rounded-full px-8 bg-background">
+                  <Link href="/login">Accedi / Registrati</Link>
+                </Button>
               </div>
             </div>
           </div>
 
-          {/* Stat / Feature Card 1 - Video Security */}
-          <div className="col-span-1 md:col-span-4 lg:col-span-4 flex flex-col gap-4 md:gap-6">
-             <div className="bg-card/50 backdrop-blur-sm rounded-[2rem] p-6 lg:p-8 border border-white/20 shadow-sm flex-1 flex flex-col justify-between hover:shadow-md transition-shadow">
-                <div className="w-12 h-12 rounded-2xl bg-orange-100 flex items-center justify-center mb-4 text-primary">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+          {/* 2. STATS & CERTIFICATIONS (Side Column) */}
+          <div className="col-span-1 md:col-span-4 flex flex-col gap-6">
+             
+             {/* Stat Card 1 */}
+             <div className="flex-1 bg-card border border-border rounded-3xl p-6 shadow-sm flex flex-col justify-center items-start hover:shadow-md transition-shadow">
+                <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-2xl text-blue-600">
+                   <ShieldCheck className="w-8 h-8" />
                 </div>
-                <div>
-                   <h3 className="text-xl font-semibold mb-2">Riproduzione Sicura</h3>
-                   <p className="text-sm text-muted-foreground leading-relaxed">
-                     Il tracciamento del battito cardiaco e la tecnologia anti-salto garantiscono che ogni secondo di apprendimento sia verificato.
-                   </p>
-                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-1">Ente Certificato</h3>
+                <p className="text-sm text-muted-foreground">
+                  Centro autorizzato Autodesk (ATC), Certiport, Pearson VUE e Cepas.
+                </p>
              </div>
 
-             <div className="bg-primary text-primary-foreground rounded-[2rem] p-6 lg:p-8 shadow-lg shadow-primary/20 flex-1 flex flex-col justify-center relative overflow-hidden">
-                <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
-                <h3 className="text-3xl font-bold mb-1">100%</h3>
-                <p className="text-primary-foreground/90 font-medium">Completamento Verificato</p>
+             {/* Stat Card 2 */}
+             <div className="flex-1 bg-card border border-border rounded-3xl p-6 shadow-sm flex flex-col justify-center items-start hover:shadow-md transition-shadow">
+                <div className="mb-4 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl text-emerald-600">
+                   <GraduationCap className="w-8 h-8" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-1">Rilascio CFP</h3>
+                <p className="text-sm text-muted-foreground">
+                  Corsi accreditati presso il CNAPPC per la formazione obbligatoria.
+                </p>
              </div>
           </div>
 
-          {/* Interactive Quizzes - Wide */}
-          <div className="col-span-1 md:col-span-6 bg-card/30 backdrop-blur-sm rounded-[2rem] p-8 border border-white/20 shadow-sm flex flex-col md:flex-row items-center gap-6 hover:bg-card/40 transition-colors">
+          {/* 3. WIDE BENEFIT CARD */}
+          <div className="col-span-1 md:col-span-12 bg-muted/30 border border-border rounded-3xl p-8 flex flex-col md:flex-row items-center gap-8">
              <div className="flex-1 space-y-4">
-               <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center text-primary">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-               </div>
-               <h3 className="text-xl font-semibold">Quiz Interattivi</h3>
-               <p className="text-muted-foreground">
-                Marker smart automaticamente indietreggiano ai corsi pertinenti quando manchi una domanda.
-               </p>
+                <h2 className="text-2xl font-bold">Perché formarsi con noi?</h2>
+                <ul className="space-y-3">
+                   <li className="flex items-center gap-3 text-muted-foreground">
+                      <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
+                      <span>Oltre 25 anni di esperienza nella formazione tecnica</span>
+                   </li>
+                   <li className="flex items-center gap-3 text-muted-foreground">
+                      <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
+                      <span>Istruttori certificati e professionisti del settore</span>
+                   </li>
+                   <li className="flex items-center gap-3 text-muted-foreground">
+                      <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
+                      <span>Modalità e-learning flessibile 24/7</span>
+                   </li>
+                </ul>
              </div>
-             {/* Abstract visual representation of quiz */}
-             <div className="w-full md:w-1/3 bg-background/50 rounded-xl p-4 border border-border/50">
-               <div className="flex gap-2 mb-2">
-                 <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                 <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                 <div className="w-3 h-3 rounded-full bg-green-400"></div>
-               </div>
-               <div className="space-y-2">
-                 <div className="h-2 w-3/4 bg-foreground/10 rounded-full"></div>
-                 <div className="h-2 w-1/2 bg-foreground/10 rounded-full"></div>
-               </div>
-             </div>
-          </div>
-
-          {/* Certificates - Wide */}
-          <div className="col-span-1 md:col-span-6 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-[2rem] p-8 border border-white/20 shadow-sm md:shadow-md hover:scale-[1.01] transition-transform duration-300">
-             <div className="flex flex-col h-full justify-between">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="space-y-1">
-                    <h3 className="text-xl font-semibold">Certificato di Eccellenza</h3>
-                    <p className="text-sm text-muted-foreground">Documentazione ufficiale archibit</p>
-                  </div>
-                  <div className="bg-primary/10 p-3 rounded-xl text-primary">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4" /></svg>
-                  </div>
+             
+             {/* Visual representation of logos/software */}
+             <div className="flex gap-4 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
+                {/* Placeholders for logos (Autodesk, Revit, etc) */}
+                <div className="h-16 w-32 bg-card rounded-xl border border-border flex items-center justify-center font-bold text-lg text-muted-foreground">
+                   Autodesk
                 </div>
-                <div className="mt-4 p-4 bg-background/50 rounded-xl border border-dashed border-border flex items-center gap-3">
-                   <div className="w-8 h-10 border border-border bg-white shadow-sm flex items-center justify-center text-[10px] text-muted-foreground">PDF</div>
-                   <div className="flex-1">
-                      <div className="h-2 w-24 bg-foreground/10 rounded-full mb-1"></div>
-                      <div className="h-2 w-16 bg-primary/20 rounded-full"></div>
-                   </div>
-                   <Button size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-full hover:bg-primary hover:text-primary-foreground">
-                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                   </Button>
+                <div className="h-16 w-32 bg-card rounded-xl border border-border flex items-center justify-center font-bold text-lg text-muted-foreground">
+                   Revit
+                </div>
+                <div className="h-16 w-32 bg-card rounded-xl border border-border flex items-center justify-center font-bold text-lg text-muted-foreground">
+                   CNAPPC
                 </div>
              </div>
           </div>
 
         </div>
+
+        {/* --- FEATURED COURSES SECTION --- */}
+        <div className="pt-12">
+           <div className="flex items-center justify-between mb-8 px-2">
+              <h2 className="text-3xl font-bold tracking-tight">Corsi in Evidenza</h2>
+              <Link href="/courses" className="text-primary hover:underline flex items-center gap-2 font-medium">
+                 Vedi tutti <ArrowRight className="w-4 h-4" />
+              </Link>
+           </div>
+
+           <div className="grid md:grid-cols-3 gap-6">
+              {featuredCourses.length > 0 ? (
+                 featuredCourses.map((course) => (
+                    <Link href={`/courses/${course.id}`} key={course.id} className="group">
+                       <Card className="h-full hover:shadow-md transition-all duration-300 border-border overflow-hidden bg-card rounded-2xl">
+                          <div className="relative aspect-video w-full bg-muted overflow-hidden">
+                             {course.thumbnailUrl ? (
+                                <Image 
+                                  src={course.thumbnailUrl} 
+                                  alt={course.title}
+                                  fill
+                                  className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                />
+                             ) : (
+                                <div className="flex h-full items-center justify-center bg-secondary/30">
+                                   <Building2 className="w-12 h-12 text-muted-foreground/20" />
+                                </div>
+                             )}
+                          </div>
+                          <CardHeader className="p-5">
+                             <div className="flex justify-between items-start mb-2">
+                                <Badge variant="secondary" className="font-medium">
+                                   €{course.price}
+                                </Badge>
+                                {(course as any).category && ( // Assuming category might exist or future proofing
+                                   <span className="text-xs text-muted-foreground uppercase tracking-wide">
+                                     { (course as any).category }
+                                   </span>
+                                )}
+                             </div>
+                             <CardTitle className="line-clamp-1 text-lg group-hover:text-primary transition-colors">
+                                {course.title}
+                             </CardTitle>
+                             <CardDescription className="line-clamp-2 mt-2">
+                                {course.description}
+                             </CardDescription>
+                          </CardHeader>
+                          <CardContent className="p-5 pt-0">
+                             <div className="flex items-center gap-4 text-xs text-muted-foreground mt-4 pt-4 border-t border-border/50">
+                                <div className="flex items-center gap-1.5">
+                                   <MonitorPlay className="w-4 h-4" />
+                                   {course._count.lessons} Lezioni
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                   <Award className="w-4 h-4" />
+                                   Certificato
+                                </div>
+                             </div>
+                          </CardContent>
+                       </Card>
+                    </Link>
+                 ))
+              ) : (
+                 <div className="col-span-full py-16 text-center text-muted-foreground bg-card/50 rounded-3xl border border-dashed border-border">
+                    <Building2 className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                    <p>Nessun corso disponibile al momento.</p>
+                 </div>
+              )}
+           </div>
+        </div>
+
       </div>
     </div>
   );
 }
+

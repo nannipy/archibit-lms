@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Suspense } from 'react';
 import { CoursesListSkeleton } from '@/components/skeletons/CoursesListSkeleton';
 
+import { CertificateDownloadButton } from '@/components/certificates/CertificateDownloadButton';
+
 async function getCertificates(userId: string) {
     const certificates = await prisma.certificate.findMany({
         where: {
@@ -32,7 +34,7 @@ async function getCertificates(userId: string) {
     return certificates;
 }
 
-async function CertificatesList({ userId }: { userId: string }) {
+async function CertificatesList({ userId, userName }: { userId: string, userName: string }) {
     const certificates = await getCertificates(userId);
 
     return (
@@ -71,26 +73,14 @@ async function CertificatesList({ userId }: { userId: string }) {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138z" />
                                 </svg>
                             )}
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <svg className="w-16 h-16 text-primary/80 drop-shadow-sm" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M12 15V3m0 12l-4-4m4 4l4-4M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                                </svg>
-                            </div>
                         </div>
                     </CardContent>
                     <CardFooter>
-                        <Button className="w-full" variant={cert.pdfUrl ? "default" : "secondary"} disabled={!cert.pdfUrl} asChild={!!cert.pdfUrl}>
-                            {cert.pdfUrl ? (
-                                <a href={cert.pdfUrl} target="_blank" rel="noopener noreferrer" download>
-                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                    </svg>
-                                    Scarica PDF
-                                </a>
-                            ) : (
-                                <span>Generazione in corso...</span>
-                            )}
-                        </Button>
+                        <CertificateDownloadButton 
+                            courseTitle={cert.course.title}
+                            userName={userName}
+                            issuedAt={cert.issuedAt}
+                        />
                     </CardFooter>
                 </Card>
             ))}
@@ -142,6 +132,12 @@ export default async function CertificatesPage() {
         redirect('/login');
     }
 
+    // Fetch user name from Prisma
+    const dbUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { name: true }
+    });
+
     return (
         <div className="min-h-screen bg-background">
             {/* Main Content */}
@@ -155,7 +151,7 @@ export default async function CertificatesPage() {
                 </div>
 
                 <Suspense fallback={<CoursesListSkeleton />}>
-                    <CertificatesList userId={user.id} />
+                    <CertificatesList userId={user.id} userName={dbUser?.name || 'Studente'} />
                 </Suspense>
             </main>
         </div>

@@ -10,10 +10,8 @@ interface SecureVideoPlayerProps {
   videoUrl: string;
   duration: number;
   maxViewedTime: number; // from DB
-  quizMarkers: QuizMarker[];
   initialCurrentTime?: number;
   onProgress: (time: number) => void;
-  onQuizTrigger: (marker: QuizMarker) => void;
   onPlayStateChange?: (isPlaying: boolean) => void;
 }
 
@@ -23,9 +21,7 @@ export default function SecureVideoPlayer({
   duration,
   maxViewedTime,
   initialCurrentTime = 0,
-  quizMarkers,
   onProgress,
-  onQuizTrigger,
   onPlayStateChange,
 }: SecureVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -37,7 +33,6 @@ export default function SecureVideoPlayer({
   const [loadingUrl, setLoadingUrl] = useState(true);
   
   const lastTimeRef = useRef(0);
-  const triggeredQuizzesRef = useRef<Set<string>>(new Set());
 
   // ===== FETCH SIGNED URL =====
   useEffect(() => {
@@ -157,36 +152,7 @@ export default function SecureVideoPlayer({
     };
   }, [maxViewedTime, loadingUrl]);
 
-  // ===== QUIZ MARKER DETECTION =====
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
 
-    const checkQuizMarkers = () => {
-      const currentTime = video.currentTime;
-      
-      for (const marker of quizMarkers) {
-        // Check if we've reached a quiz marker (within 0.5s tolerance)
-        if (
-          Math.abs(currentTime - marker.timestamp) < 0.5 &&
-          !triggeredQuizzesRef.current.has(marker.id)
-        ) {
-          // Pause video and trigger quiz
-          video.pause();
-          setIsPlaying(false);
-          triggeredQuizzesRef.current.add(marker.id);
-          onQuizTrigger(marker);
-          break;
-        }
-      }
-    };
-
-    video.addEventListener('timeupdate', checkQuizMarkers);
-    
-    return () => {
-      video.removeEventListener('timeupdate', checkQuizMarkers);
-    };
-  }, [quizMarkers, onQuizTrigger, loadingUrl]);
 
   // ===== PAGE VISIBILITY API =====
   useEffect(() => {

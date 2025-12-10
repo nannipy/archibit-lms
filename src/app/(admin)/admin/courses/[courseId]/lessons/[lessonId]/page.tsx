@@ -32,6 +32,11 @@ export default async function EditLessonPage(props: Props) {
 
   const lesson = await prisma.lesson.findUnique({
     where: { id: lessonId },
+    include: {
+        quizMarkers: {
+            orderBy: { timestamp: 'asc' }
+        }
+    }
   });
 
   if (!lesson || lesson.courseId !== courseId) redirect(`/admin/courses/${courseId}`);

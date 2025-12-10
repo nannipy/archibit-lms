@@ -12,6 +12,7 @@ import { PaymentModal } from '@/components/payment/PaymentModal';
 import { enrollUser } from '@/actions/enroll';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 interface Lesson {
     id: string;
@@ -27,6 +28,7 @@ interface CourseDetailClientProps {
         title: string;
         description: string;
         price: number;
+        thumbnailUrl?: string | null;
         lessons: Lesson[];
     };
     enrollment: {
@@ -121,13 +123,22 @@ export function CourseDetailClient({ course, enrollment, completedLessonIds }: C
             {/* Enrollment Card */}
             <Card className="lg:w-80 h-fit">
               <CardHeader>
-                <div className="aspect-video bg-muted rounded-lg mb-4 flex items-center justify-center">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
+                <div className="relative aspect-video bg-muted rounded-lg mb-4 flex items-center justify-center overflow-hidden">
+                  {course.thumbnailUrl ? (
+                    <Image
+                      src={course.thumbnailUrl}
+                      alt={course.title}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                      <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                  )}
                 </div>
                 <CardTitle className="text-2xl">€{course.price}</CardTitle>
                 <CardDescription>Acquisto una tantum, accesso a vita</CardDescription>
@@ -162,30 +173,66 @@ export function CourseDetailClient({ course, enrollment, completedLessonIds }: C
           <div className="space-y-3">
             {course.lessons.map((lesson, index) => {
               const isCompleted = completedSet.has(lesson.id);
-              const isAccessible = isEnrolled; 
+              
+              // Locked Logic:
+              // 1. First lesson (index 0) is always unlocked.
+              // 2. Lesson N is unlocked only if Lesson N-1 is completed.
+              // 3. Must be enrolled.
+              let isLocked = false;
+              if (!isEnrolled) {
+                   // If not enrolled, usually we assume locked or just "start course" takes to first. 
+                   // But let's say purely based on sequence:
+                   isLocked = true; 
+              } else if (index > 0) {
+                   const prevLessonId = course.lessons[index - 1].id;
+                   if (!completedSet.has(prevLessonId)) {
+                       isLocked = true;
+                   }
+              }
+
+              // Special case: if not enrolled, we might show them as "locked" or just generic list.
+              // Existing logic said `!isAccessible ? 'opacity-60'` where accessible was just `isEnrolled`.
+              // We want strict sequentiality.
+              
+              // If not enrolled, let's keep everything "locked" except maybe preview? 
+              // For now, let's stick to user request: "Lesson 2 locked if Lesson 1 not completed".
+              
+              const isAccessible = !isLocked;
               const lessonMinutes = Math.floor((lesson.videoDuration || 0) / 60);
 
               return (
-                <Card key={lesson.id} className={!isAccessible ? 'opacity-60' : ''}>
+                <Card key={lesson.id} className={!isAccessible ? 'opacity-50 grayscale-[0.5]' : ''}>
                   <CardContent className="p-4">
-                    <div className="flex items-start gap-4">
+                    <div className="flex items-center gap-4">
+                      {/* Icon / Number */}
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                         isCompleted
                           ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted text-muted-foreground'
+                          : isAccessible 
+                             ? 'bg-primary/10 text-primary'
+                             : 'bg-muted text-muted-foreground'
                       }`}>
                         {isCompleted ? (
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                           </svg>
+                        ) : isLocked ? (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                          </svg>
                         ) : (
                           <span className="text-sm font-medium">{index + 1}</span>
                         )}
                       </div>
+                      
+                      {/* Text Content */}
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-medium mb-1">{lesson.title}</h3>
+                        <div className="flex items-center gap-2">
+                             <h3 className="font-medium truncate">{lesson.title}</h3>
+                             {isLocked && <Badge variant="outline" className="text-xs py-0 h-5">Bloccata</Badge>}
+                        </div>
                         {lesson.description && (
-                          <p className="text-sm text-muted-foreground mb-2">{lesson.description}</p>
+                          <p className="text-sm text-muted-foreground truncate mb-1">{lesson.description}</p>
                         )}
                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
                           <span>{lessonMinutes} min</span>
@@ -194,13 +241,24 @@ export function CourseDetailClient({ course, enrollment, completedLessonIds }: C
                           )}
                         </div>
                       </div>
-                      {isAccessible && (
-                        <Button asChild variant="ghost" size="sm">
-                          <Link href={`/courses/${course.id}/lessons/${lesson.id}`}>
-                            {isCompleted ? 'Rivedi' : 'Inizia'}
-                          </Link>
-                        </Button>
-                      )}
+
+                      {/* Action Button */}
+                      <div>
+                          {isAccessible ? (
+                            <Button asChild variant={isCompleted ? "ghost" : "default"} size="sm">
+                              <Link href={`/courses/${course.id}/lessons/${lesson.id}`}>
+                                {isCompleted ? 'Rivedi' : 'Inizia'}
+                              </Link>
+                            </Button>
+                          ) : (
+                            <Button disabled variant="ghost" size="sm">
+                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                </svg>
+                                Bloccata
+                            </Button>
+                          )}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

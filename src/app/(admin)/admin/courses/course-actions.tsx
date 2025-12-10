@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Pencil, Trash, Eye, EyeOff } from 'lucide-react';
+import { MoreHorizontal, Pencil, Trash, Eye, EyeOff, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { deleteCourse, toggleCoursePublish } from './actions';
 import { toast } from 'sonner';
@@ -62,6 +62,12 @@ export function CourseActions({ courseId, isPublished }: CourseActionsProps) {
               Publish
             </>
           )}
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+            <Link href={`/admin/courses/${courseId}/lessons/create`}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Lesson
+            </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
             <Link href={`/admin/courses/${courseId}`}>

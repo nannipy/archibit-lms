@@ -25,7 +25,7 @@ export default async function CreateCoursePage() {
     const thumbnailUrl = formData.get('thumbnailUrl') as string;
     const isPublished = formData.get('isPublished') === 'on';
 
-    await prisma.course.create({
+    const course = await prisma.course.create({
       data: {
         title,
         description,
@@ -36,6 +36,7 @@ export default async function CreateCoursePage() {
     });
 
     revalidatePath('/admin/courses');
+    redirect(`/admin/courses/${course.id}`);
   }
 
   return (

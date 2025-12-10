@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { PaymentModal } from '@/components/payment/PaymentModal';
+import Image from 'next/image';
 import { enrollUser } from '@/actions/enroll';
 import { toast } from 'sonner'; 
 
@@ -21,15 +22,17 @@ export type CourseWithProgress = {
      lessons: number;
   };
   progress?: number | null;
+  completedAt?: Date | string | null;
   isEnrolled: boolean;
 };
 
 interface CoursesClientProps {
   courses: CourseWithProgress[];
   userId: string;
+  userName: string;
 }
 
-export function CoursesClient({ courses, userId }: CoursesClientProps) {
+export function CoursesClient({ courses, userId, userName }: CoursesClientProps) {
   const router = useRouter();
   const [selectedCourse, setSelectedCourse] = useState<CourseWithProgress | null>(null);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -60,6 +63,8 @@ export function CoursesClient({ courses, userId }: CoursesClientProps) {
   };
 
   const enrolledCourses = courses.filter(c => c.isEnrolled);
+  const activeCourses = enrolledCourses.filter(c => !c.completedAt);
+  const completedCourses = enrolledCourses.filter(c => c.completedAt);
   const availableCourses = courses.filter(c => !c.isEnrolled);
 
   return (
@@ -71,16 +76,32 @@ export function CoursesClient({ courses, userId }: CoursesClientProps) {
           </p>
         </div>
 
-        {/* Enrolled Courses Section */}
-        {enrolledCourses.length > 0 && (
+        {/* Active Courses Section */}
+        {activeCourses.length > 0 && (
           <div className="mb-12">
-            <h2 className="text-2xl font-semibold mb-4">I Miei Corsi</h2>
+            <h2 className="text-2xl font-semibold mb-4">I Miei Corsi Attivi</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {enrolledCourses.map(course => (
-                  <Card key={course.id} className="flex flex-col">
+              {activeCourses.map(course => (
+                  <Card key={course.id} className="flex flex-col border-blue-100 dark:border-blue-900/50">
                     <CardHeader>
+                      <div className="relative aspect-video w-full mb-4 overflow-hidden rounded-md bg-muted">
+                        {course.thumbnailUrl ? (
+                          <Image
+                            src={course.thumbnailUrl}
+                            alt={course.title}
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center bg-secondary/20">
+                            <svg className="h-12 w-12 text-muted-foreground/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
                       <div className="flex items-start justify-between mb-2">
-                        <Badge variant="secondary">Iscritto</Badge>
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100">In Corso</Badge>
                       </div>
                       <CardTitle className="line-clamp-2">{course.title}</CardTitle>
                       <CardDescription className="line-clamp-3">
@@ -91,9 +112,9 @@ export function CoursesClient({ courses, userId }: CoursesClientProps) {
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Progresso</span>
-                          <span className="font-medium">{Math.round(course.progress || 0)}%</span>
+                          <span className="font-medium text-blue-600">{Math.round(course.progress || 0)}%</span>
                         </div>
-                        <Progress value={course.progress || 0} />
+                        <Progress value={course.progress || 0} className="h-2" />
                         <p className="text-xs text-muted-foreground">
                           {course._count?.lessons || 0} lezioni
                         </p>
@@ -121,6 +142,22 @@ export function CoursesClient({ courses, userId }: CoursesClientProps) {
             {availableCourses.map(course => (
                 <Card key={course.id} className="flex flex-col">
                   <CardHeader>
+                    <div className="relative aspect-video w-full mb-4 overflow-hidden rounded-md bg-muted">
+                        {course.thumbnailUrl ? (
+                          <Image
+                            src={course.thumbnailUrl}
+                            alt={course.title}
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center bg-secondary/20">
+                            <svg className="h-12 w-12 text-muted-foreground/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
                     <div className="flex items-start justify-between mb-2">
                       <Badge variant="outline">Disponibile</Badge>
                       <span className="text-sm font-semibold text-primary">
@@ -175,6 +212,94 @@ export function CoursesClient({ courses, userId }: CoursesClientProps) {
           )}
 
         </div>
+
+        {/* Completed Courses Section */}
+        {completedCourses.length > 0 && (
+          <div className="mb-12 border-t pt-12">
+            <h2 className="text-2xl font-semibold mb-4 text-gray-800">Corsi Completati</h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {completedCourses.map(course => (
+                  <Card key={course.id} className="flex flex-col bg-gray-50 border-green-200">
+                    <CardHeader>
+                      <div className="relative aspect-video w-full mb-4 overflow-hidden rounded-md bg-muted">
+                        {course.thumbnailUrl ? (
+                          <Image
+                            src={course.thumbnailUrl}
+                            alt={course.title}
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center bg-secondary/20">
+                            <svg className="h-12 w-12 text-muted-foreground/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-start justify-between mb-2">
+                        <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Completato</Badge>
+                        <span className="text-xs text-gray-500">
+                            {course.completedAt ? new Date(course.completedAt).toLocaleDateString() : ''}
+                        </span>
+                      </div>
+                      <CardTitle className="line-clamp-2 text-gray-700">{course.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex-1">
+                        <div className="flex items-center gap-2 text-green-600 mb-4">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="font-medium">100% Completato</span>
+                        </div>
+                    </CardContent>
+                    <CardFooter className="gap-2">
+                        <Button variant="outline" className="flex-1" asChild>
+                            <Link href={`/courses/${course.id}`}>Rivedi Corso</Link>
+                        </Button>
+                        <Button 
+                            className="flex-1 bg-green-600 hover:bg-green-700 gap-2"
+                            onClick={async () => {
+                                const { jsPDF } = await import('jspdf');
+                                const doc = new jsPDF({ orientation: 'landscape' });
+
+                                doc.setFont("helvetica", "bold");
+                                doc.setFontSize(40);
+                                doc.text("Certificato di Completamento", 148, 60, { align: "center" });
+                                
+                                doc.setFontSize(20);
+                                doc.setFont("helvetica", "normal");
+                                doc.text("Si certifica che", 148, 90, { align: "center" });
+
+                                doc.setFontSize(30);
+                                doc.setFont("helvetica", "bold");
+                                doc.text(userName, 148, 110, { align: "center" });
+
+                                doc.setFontSize(20);
+                                doc.setFont("helvetica", "normal");
+                                doc.text("ha completato con successo il corso", 148, 130, { align: "center" });
+
+                                doc.setFontSize(25);
+                                doc.setFont("helvetica", "bold");
+                                doc.text(course.title, 148, 150, { align: "center" });
+
+                                doc.setFontSize(15);
+                                doc.text(`Data: ${course.completedAt ? new Date(course.completedAt).toLocaleDateString('it-IT') : new Date().toLocaleDateString('it-IT')}`, 148, 180, { align: "center" });
+
+                                doc.save(`${course.title.replace(/\s+/g, '_')}_Certificato.pdf`);
+                            }}
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Certificato
+                        </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+            </div>
+          </div>
+        )}
 
         {selectedCourse && (
             <PaymentModal 

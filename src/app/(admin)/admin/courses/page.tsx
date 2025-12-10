@@ -81,7 +81,9 @@ export default async function AdminCoursesPage() {
                   <tr key={course.id} className="hover:bg-white/5 transition-colors group">
                     <td className="px-8 py-5">
                       <div>
-                        <p className="text-base font-semibold text-foreground group-hover:text-primary transition-colors">{course.title}</p>
+                        <p className="text-base font-semibold text-foreground group-hover:text-primary transition-colors">
+                          <Link href={`/admin/courses/${course.id}`}>{course.title}</Link>
+                        </p>
                         <p className="text-sm text-muted-foreground line-clamp-1 max-w-[300px]">{course.description}</p>
                       </div>
                     </td>

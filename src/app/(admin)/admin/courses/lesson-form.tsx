@@ -9,6 +9,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { VideoUpload } from '@/components/video-upload';
+import { QuizEditor } from '@/components/admin/QuizEditor';
+import { QuizMarker } from '@/types';
 
 interface LessonFormProps {
     initialData?: {
@@ -18,6 +20,7 @@ interface LessonFormProps {
         videoUrl: string;
         videoDuration: number;
         order: number;
+        quizMarkers?: QuizMarker[];
     };
     courseId: string;
     action: (data: FormData) => Promise<void>;
@@ -30,6 +33,7 @@ export function LessonForm({ initialData, courseId, action, submitLabel, showDel
     const [loading, setLoading] = useState(false);
     const [videoUrl, setVideoUrl] = useState(initialData?.videoUrl || '');
     const [videoDuration, setVideoDuration] = useState(initialData?.videoDuration || 0);
+    const [quizzes, setQuizzes] = useState<QuizMarker[]>(initialData?.quizMarkers || []);
     const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -107,6 +111,15 @@ export function LessonForm({ initialData, courseId, action, submitLabel, showDel
                         />
                         <input type="hidden" name="videoUrl" value={videoUrl} />
                         <input type="hidden" name="videoDuration" value={videoDuration} />
+                    </div>
+
+                    <div className="space-y-4">
+                         <QuizEditor 
+                            initialQuizzes={quizzes}
+                            onChange={setQuizzes}
+                            videoDuration={videoDuration}
+                         />
+                         <input type="hidden" name="quizzes" value={JSON.stringify(quizzes)} />
                     </div>
 
                     <div className="space-y-2">

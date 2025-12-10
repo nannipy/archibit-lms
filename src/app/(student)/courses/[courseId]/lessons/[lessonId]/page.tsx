@@ -103,9 +103,37 @@ export default async function LessonPage(props: LessonPageProps) {
       }))
   };
 
+  // Fetch User Details to get name
+  const dbUser = await prisma.user.findUnique({
+      where: { id: user.id }
+  });
+
+  // Check Sequential Locking
+  const allLessonProgress = await prisma.lessonProgress.findMany({
+      where: {
+          userId: user.id,
+          lessonId: { in: course.lessons.map(l => l.id) }
+      }
+  });
+
+  const lessonIndex = course.lessons.findIndex(l => l.id === lesson.id);
+  
+  // Rule: To access lesson N (index > 0), lesson N-1 must be completed.
+  if (lessonIndex > 0) {
+      const prevLessonId = course.lessons[lessonIndex - 1].id;
+      const prevLessonProgress = allLessonProgress.find(p => p.lessonId === prevLessonId);
+      
+      if (!prevLessonProgress?.isCompleted) {
+          // Locked! Redirect to the previous lesson (or first incomplete)
+          redirect(`/courses/${params.courseId}/lessons/${prevLessonId}`);
+      }
+  }
+
   return (
     <Suspense fallback={<LessonSkeleton />}>
       <LessonClient 
+        userName={dbUser?.name || ''}
+        isCourseCompleted={!!enrollment.completedAt}
         course={{
             id: course.id,
             title: course.title,
