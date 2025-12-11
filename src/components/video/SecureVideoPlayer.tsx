@@ -11,8 +11,10 @@ interface SecureVideoPlayerProps {
   duration: number;
   maxViewedTime: number; // from DB
   initialCurrentTime?: number;
+  quizMarkers?: QuizMarker[];
   onProgress: (time: number) => void;
   onPlayStateChange?: (isPlaying: boolean) => void;
+  onQuizTrigger?: (marker: QuizMarker) => void;
 }
 
 export default function SecureVideoPlayer({
@@ -21,8 +23,10 @@ export default function SecureVideoPlayer({
   duration,
   maxViewedTime,
   initialCurrentTime = 0,
+  quizMarkers = [],
   onProgress,
   onPlayStateChange,
+  onQuizTrigger,
 }: SecureVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [currentTime, setCurrentTime] = useState(initialCurrentTime);
@@ -180,6 +184,21 @@ export default function SecureVideoPlayer({
       const time = video.currentTime;
       setCurrentTime(time);
       
+      // Check for quizzes
+      if (onQuizTrigger && quizMarkers.length > 0) {
+          // Find if we just crossed a quiz timestamp
+          // Use a small epsilon or range to ensure we don't miss it if frame rate is low,
+          // but relying on lastTimeRef check is better.
+          const quizToTrigger = quizMarkers.find(q => q.timestamp > lastTimeRef.current && q.timestamp <= time);
+          
+          if (quizToTrigger) {
+              video.pause();
+              setIsPlaying(false);
+              onPlayStateChange?.(false);
+              onQuizTrigger(quizToTrigger);
+          }
+      }
+
       // Update max viewed time if we've progressed
       if (time > lastTimeRef.current) {
         lastTimeRef.current = time;
@@ -200,7 +219,7 @@ export default function SecureVideoPlayer({
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('ended', handleEnded);
     };
-  }, [onProgress, loadingUrl, duration]);
+  }, [onProgress, loadingUrl, duration, quizMarkers, onQuizTrigger, onPlayStateChange]);
 
   // ===== PLAYBACK CONTROLS =====
   const togglePlay = () => {
