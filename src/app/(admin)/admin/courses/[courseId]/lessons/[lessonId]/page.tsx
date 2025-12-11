@@ -60,7 +60,13 @@ export default async function EditLessonPage(props: Props) {
             courseId={courseId}
             action={updateAction} 
             submitLabel="Save Changes"
-            initialData={lesson}
+            initialData={{
+              ...lesson,
+              quizMarkers: lesson.quizMarkers.map(marker => ({
+                ...marker,
+                options: marker.options as any
+              }))
+            }}
             showDelete={true}
             deleteAction={deleteAction}
         />
