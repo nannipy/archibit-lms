@@ -15,7 +15,11 @@
 
 # next.js
 /.next/
+/firebase-debug.log
+.firebase/archibit-lms/functions/.next/
+/firebase-debug.log
 /out/
+.firebase/archibit-lms/functions/node_modules/*
 
 # production
 /build
@@ -44,3 +48,8 @@ next-env.d.ts
 
 # large media files
 public/video.mp4
+
+# firebase functions wrapper
+.firebase/archibit-lms/functions
+.firebase/archibit-lms/functions/node_modules
+.firebase/*

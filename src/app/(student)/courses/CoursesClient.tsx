@@ -125,7 +125,7 @@ export function CoursesClient({ courses, userId, userName }: CoursesClientProps)
                     <CardFooter>
                       <Button asChild className="w-full">
                         <Link href={`/courses/${course.id}`}>
-                          Continua ad imparare
+                          Continua
                         </Link>
                       </Button>
                     </CardFooter>

@@ -25,12 +25,21 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
+      if (!email.trim() || !password) {
+        setError('Inserisci email e password');
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('Attempting login with:', { email: email.trim(), passwordLength: password.length });
+
       const { error: authError } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim(),
         password,
       });
 
       if (authError) {
+        console.error('Supabase login error:', authError);
         setError(authError.message === 'Invalid login credentials' 
           ? 'Email o password non validi' 
           : authError.message);

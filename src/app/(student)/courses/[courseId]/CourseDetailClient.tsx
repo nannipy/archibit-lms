@@ -172,7 +172,7 @@ export function CourseDetailClient({ course, enrollment, completedLessonIds }: C
                     </Badge>
                     <Button asChild className="w-full" size="lg">
                       <Link href={course.lessons.length > 0 ? `/courses/${course.id}/lessons/${course.lessons[0].id}` : '#'}>
-                        {progress > 0 ? 'Continua ad imparare' : 'Inizia corso'}
+                        {progress > 0 ? 'Continua' : 'Inizia corso'}
                       </Link>
                     </Button>
                   </>
