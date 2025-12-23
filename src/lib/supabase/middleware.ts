@@ -63,6 +63,9 @@ export async function updateSession(request: NextRequest) {
 
     // Admin routes - check for admin role
     if (request.nextUrl.pathname.startsWith('/admin') && user) {
+        // OPTIMIZATION_TODO: Move role to JWT claims to avoid Database hit on every request.
+        // Currently we fetch the user profile to check the role.
+
         // Get user profile to check role
         const { data } = await supabase
             .from('User')

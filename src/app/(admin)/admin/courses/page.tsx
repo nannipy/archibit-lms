@@ -4,7 +4,14 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { CourseActions } from './course-actions';
 
-export default async function AdminCoursesPage() {
+export default async function AdminCoursesPage(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const searchParams = await props.searchParams;
+  const page = Number(searchParams.page) || 1;
+  const pageSize = 10;
+  const skip = (page - 1) * pageSize;
+
   const supabase = await createClient();
   const { data: { user: authUser } } = await supabase.auth.getUser();
   
@@ -20,19 +27,27 @@ export default async function AdminCoursesPage() {
     redirect('/courses');
   }
 
-  const courses = await prisma.course.findMany({
-    include: {
-      lessons: true,
-      _count: {
-        select: {
-          enrollments: true,
+  const [courses, totalCount] = await prisma.$transaction([
+    prisma.course.findMany({
+      take: pageSize,
+      skip: skip,
+      include: {
+        lessons: true,
+        _count: {
+          select: {
+            enrollments: true,
+          },
         },
       },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.course.count(),
+  ]);
 
-  
+  const totalPages = Math.ceil(totalCount / pageSize);
+  const hasNextPage = page < totalPages;
+  const hasPrevPage = page > 1;
+
   return (
     <div className="min-h-screen bg-background">
       {/* Main Content */}
@@ -51,8 +66,8 @@ export default async function AdminCoursesPage() {
         </div>
 
         {/* Courses Table Container with Bento Style */}
-        <div className="bg-card/50 backdrop-blur-md rounded-[2rem] border border-white/20 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+        <div className="bg-card/50 backdrop-blur-md rounded-[2rem] border border-white/20 shadow-sm overflow-hidden flex flex-col min-h-[600px]">
+          <div className="overflow-x-auto flex-grow">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-white/10 text-left">
@@ -121,6 +136,39 @@ export default async function AdminCoursesPage() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Pagination Controls */}
+          <div className="border-t border-white/10 px-8 py-4 flex items-center justify-between bg-white/5">
+            <p className="text-sm text-muted-foreground">
+              Showing <span className="font-medium">{courses.length > 0 ? skip + 1 : 0}</span> to <span className="font-medium">{Math.min(skip + pageSize, totalCount)}</span> of <span className="font-medium">{totalCount}</span> results
+            </p>
+            <div className="flex items-center space-x-2">
+              <Link
+                href={`/admin/courses?page=${page - 1}`}
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                  !hasPrevPage
+                    ? 'pointer-events-none opacity-50 cursor-not-allowed bg-secondary/50 text-muted-foreground'
+                    : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground'
+                }`}
+                aria-disabled={!hasPrevPage}
+                tabIndex={!hasPrevPage ? -1 : undefined}
+              >
+                Previous
+              </Link>
+              <Link
+                href={`/admin/courses?page=${page + 1}`}
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                  !hasNextPage
+                    ? 'pointer-events-none opacity-50 cursor-not-allowed bg-secondary/50 text-muted-foreground'
+                    : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground'
+                }`}
+                aria-disabled={!hasNextPage}
+                tabIndex={!hasNextPage ? -1 : undefined}
+              >
+                Next
+              </Link>
+            </div>
           </div>
         </div>
       </main>

@@ -10,6 +10,7 @@ const globalForPrisma = globalThis as unknown as {
 // Create a connection pool (reuse across requests)
 const pool = globalForPrisma.pool ?? new Pool({
     connectionString: process.env.DATABASE_URL,
+    max: process.env.NODE_ENV === 'development' ? 1 : undefined,
 })
 
 if (process.env.NODE_ENV !== 'production') {
